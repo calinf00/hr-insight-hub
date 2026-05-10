@@ -57,6 +57,27 @@ const ANNI_RANGES: { value: string; label: string; min: number; max: number }[] 
   { value: "10+", label: "10+ anni", min: 10, max: Number.POSITIVE_INFINITY },
 ];
 
+type PeriodoPreset = "any" | "30d" | "3m" | "6m" | "1y" | "custom";
+const PERIODO_OPZIONI: { value: PeriodoPreset; label: string }[] = [
+  { value: "any", label: "Qualsiasi periodo" },
+  { value: "30d", label: "Ultimi 30 giorni" },
+  { value: "3m", label: "Ultimi 3 mesi" },
+  { value: "6m", label: "Ultimi 6 mesi" },
+  { value: "1y", label: "Ultimo anno" },
+  { value: "custom", label: "Personalizzato" },
+];
+
+function presetToRange(p: PeriodoPreset): { from?: Date; to?: Date } {
+  if (p === "any" || p === "custom") return {};
+  const now = new Date();
+  const from = new Date(now);
+  if (p === "30d") from.setDate(now.getDate() - 30);
+  else if (p === "3m") from.setMonth(now.getMonth() - 3);
+  else if (p === "6m") from.setMonth(now.getMonth() - 6);
+  else if (p === "1y") from.setFullYear(now.getFullYear() - 1);
+  return { from, to: now };
+}
+
 function getEstratte(c: Candidato): Estratte {
   return (c.informazioni_estratte as Estratte | null) ?? {};
 }

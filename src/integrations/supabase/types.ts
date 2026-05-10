@@ -62,6 +62,36 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          created_at: string
+          escludi_posizioni_chiuse: boolean
+          id: string
+          lingua_output: string
+          openai_api_key: string | null
+          soglia_non_idoneo: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          escludi_posizioni_chiuse?: boolean
+          id?: string
+          lingua_output?: string
+          openai_api_key?: string | null
+          soglia_non_idoneo?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          escludi_posizioni_chiuse?: boolean
+          id?: string
+          lingua_output?: string
+          openai_api_key?: string | null
+          soglia_non_idoneo?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campi_personalizzati: {
         Row: {
           created_at: string

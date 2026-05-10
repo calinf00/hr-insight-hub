@@ -442,6 +442,12 @@ function CandidatoDetailPage() {
         )}
       </section>
 
+      <StoricoCandidature
+        candidato={data}
+        analisi={analisiList || []}
+        posMap={analisiPosizioni || new Map<string, string>()}
+      />
+
       {data.note && (
         <section className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-2 text-sm font-semibold">Note HR</h2>

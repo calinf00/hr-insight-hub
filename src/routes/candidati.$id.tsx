@@ -222,7 +222,14 @@ function CandidatoDetailPage() {
             {data.nome} {data.cognome}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            {data.posizioni?.titolo && <span>Ruolo applicato: {data.posizioni.titolo}</span>}
+            <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+              <CalendarDays className="h-3.5 w-3.5 text-primary" />
+              Candidato il{" "}
+              {new Date(data.created_at).toLocaleDateString("it-IT", {
+                day: "2-digit", month: "short", year: "numeric",
+              })}
+            </span>
+            {data.posizioni?.titolo && <span>· Ruolo applicato: {data.posizioni.titolo}</span>}
             {statoCand === "attivo" && (
               <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-400">
                 🟢 Attivo

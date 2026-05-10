@@ -42,6 +42,8 @@ type Estratte = {
   competenze_tecniche?: string[];
   certificazioni?: string[];
   campi_personalizzati?: Record<string, string>;
+  _da_rivalutare?: boolean;
+  _nota_rivalutare?: string;
 };
 
 export const Route = createFileRoute("/candidati/$id")({

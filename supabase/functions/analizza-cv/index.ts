@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
         risultato,
         best_posizione_id: bestPosId,
         best_score: bestScore,
-        modello: "openai/gpt-5",
+        modello: modelName,
       })
       .select()
       .single();

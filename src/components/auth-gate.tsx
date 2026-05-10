@@ -88,18 +88,27 @@ function LoginScreen() {
     try {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          console.error("[auth] signIn error:", error);
+          toast.error("Email o password non corretti");
+          return;
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
-        if (error) throw error;
-        toast.success("Account creato. Un amministratore deve approvarlo prima dell'accesso.");
+        if (error) {
+          console.error("[auth] signUp error:", error);
+        }
+        toast.success(
+          "Se l'indirizzo non è già registrato, riceverai una email di conferma. Un amministratore dovrà approvare l'accesso.",
+        );
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Errore di autenticazione");
+      console.error("[auth] unexpected error:", err);
+      toast.error("Errore di autenticazione. Riprova più tardi.");
     } finally {
       setBusy(false);
     }

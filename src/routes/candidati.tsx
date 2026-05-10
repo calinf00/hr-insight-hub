@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Users, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -131,16 +131,24 @@ function CandidatiPage() {
               filtered.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => setPreview(c)}
+                    <Link
+                      to="/candidati/$id"
+                      params={{ id: c.id }}
                       className="flex items-center gap-2 font-medium text-foreground hover:text-primary transition-colors"
                     >
                       {c.cv_path && <FileText className="h-3.5 w-3.5 text-muted-foreground" />}
                       {c.nome}
-                    </button>
+                    </Link>
                   </TableCell>
-                  <TableCell className="font-medium">{c.cognome}</TableCell>
+                  <TableCell>
+                    <Link
+                      to="/candidati/$id"
+                      params={{ id: c.id }}
+                      className="font-medium text-foreground hover:text-primary transition-colors"
+                    >
+                      {c.cognome}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {c.posizioni?.titolo || "—"}
                   </TableCell>
@@ -151,6 +159,16 @@ function CandidatiPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    {c.cv_path && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setPreview(c)}
+                        aria-label="Anteprima CV"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

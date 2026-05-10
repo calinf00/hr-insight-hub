@@ -256,8 +256,16 @@ function CandidatiPage() {
         (c) => getEstratte(c).residenza?.trim() === filtroResidenza,
       );
     }
+    if (periodoRange.from || periodoRange.to) {
+      list = list.filter((c) => {
+        const t = new Date(c.created_at).getTime();
+        if (periodoRange.from && t < periodoRange.from.getTime()) return false;
+        if (periodoRange.to && t > periodoRange.to.getTime()) return false;
+        return true;
+      });
+    }
     return list;
-  }, [data, vista, search, filtroLingua, filtroAnni, filtroTitolo, filtroResidenza]);
+  }, [data, vista, search, filtroLingua, filtroAnni, filtroTitolo, filtroResidenza, periodoRange]);
 
   const deleteMutation = useMutation({
     mutationFn: async (c: Candidato) => {

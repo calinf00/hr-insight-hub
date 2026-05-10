@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthGate } from "@/components/auth-gate";
 
 function NotFoundComponent() {
   return (
@@ -93,20 +94,22 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
-          <div className="flex-1 flex flex-col">
-            <header className="h-14 flex items-center gap-3 border-b bg-card px-4">
-              <SidebarTrigger />
-              <div className="text-sm font-medium text-muted-foreground">CV Analyzer</div>
-            </header>
-            <main className="flex-1 p-6">
-              <Outlet />
-            </main>
+      <AuthGate>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-background">
+            <AppSidebar />
+            <div className="flex-1 flex flex-col">
+              <header className="h-14 flex items-center gap-3 border-b bg-card px-4">
+                <SidebarTrigger />
+                <div className="text-sm font-medium text-muted-foreground">CV Analyzer</div>
+              </header>
+              <main className="flex-1 p-6">
+                <Outlet />
+              </main>
+            </div>
           </div>
-        </div>
-      </SidebarProvider>
+        </SidebarProvider>
+      </AuthGate>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );

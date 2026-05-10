@@ -126,15 +126,38 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { candidato_id, posizioni_ids } = await req.json();
-    if (!candidato_id || !Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
-      return json({ error: "candidato_id e posizioni_ids sono obbligatori" }, 400);
+    // --- AUTH: richiede utente HR autenticato ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json({ error: "Non autorizzato" }, 401);
     }
-
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return json({ error: "Non autorizzato" }, 401);
+    }
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    const { data: roleRow } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id)
+      .eq("role", "hr")
+      .maybeSingle();
+    if (!roleRow) {
+      return json({ error: "Accesso riservato agli utenti HR" }, 403);
+    }
+
+    const { candidato_id, posizioni_ids } = await req.json();
+    if (!candidato_id || !Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
+      return json({ error: "candidato_id e posizioni_ids sono obbligatori" }, 400);
+    }
 
     const { data: candidato, error: cErr } = await supabase
       .from("candidati")

@@ -1,3 +1,4 @@
+import { handleDbError } from "@/lib/handle-error";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -84,7 +85,7 @@ export function PromuoviDialog({ open, onOpenChange, candidatoId, candidatoNome 
       reset();
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const reset = () => {

@@ -1,3 +1,4 @@
+import { handleDbError } from "@/lib/handle-error";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -87,7 +88,7 @@ function CampiPersonalizzatiSection() {
       setNewDescrizione("");
       toast.success("Campo aggiunto");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const updateMutation = useMutation({
@@ -110,7 +111,7 @@ function CampiPersonalizzatiSection() {
       });
       toast.success("Campo aggiornato");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const deleteMutation = useMutation({
@@ -123,7 +124,7 @@ function CampiPersonalizzatiSection() {
       setToDelete(null);
       toast.success("Campo eliminato");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const reorderMutation = useMutation({
@@ -146,7 +147,7 @@ function CampiPersonalizzatiSection() {
       if (e2) throw e2;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["campi_personalizzati"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const getDraft = (c: Campo) =>
@@ -337,7 +338,7 @@ function PreferenzeSection() {
       queryClient.invalidateQueries({ queryKey: ["app_settings"] });
       toast.success("Preferenze salvate");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   return (

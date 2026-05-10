@@ -1,3 +1,4 @@
+import { handleDbError } from "@/lib/handle-error";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -72,7 +73,7 @@ function PosizioniPage() {
       toast.success("Posizione eliminata");
       setToDelete(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const formatDate = (iso: string) =>

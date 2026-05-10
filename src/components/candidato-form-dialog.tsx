@@ -1,3 +1,4 @@
+import { handleDbError } from "@/lib/handle-error";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -115,7 +116,7 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
       toast.success("Candidato aggiunto");
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   return (

@@ -1,3 +1,4 @@
+import { handleDbError } from "@/lib/handle-error";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -128,7 +129,7 @@ function AnalisiPage() {
       setSelectedPos(new Set());
       setAllPositions(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const deleteMutation = useMutation({
@@ -141,7 +142,7 @@ function AnalisiPage() {
       toast.success("Analisi eliminata");
       setToDelete(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const canRun =

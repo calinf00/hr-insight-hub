@@ -14,6 +14,7 @@ import { Route as ImpostazioniRouteImport } from './routes/impostazioni'
 import { Route as CandidatiRouteImport } from './routes/candidati'
 import { Route as AnalisiRouteImport } from './routes/analisi'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CandidatiIdRouteImport } from './routes/candidati.$id'
 
 const PosizioniRoute = PosizioniRouteImport.update({
   id: '/posizioni',
@@ -40,34 +41,54 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CandidatiIdRoute = CandidatiIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CandidatiRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analisi': typeof AnalisiRoute
-  '/candidati': typeof CandidatiRoute
+  '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/candidati/$id': typeof CandidatiIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analisi': typeof AnalisiRoute
-  '/candidati': typeof CandidatiRoute
+  '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/candidati/$id': typeof CandidatiIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analisi': typeof AnalisiRoute
-  '/candidati': typeof CandidatiRoute
+  '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/candidati/$id': typeof CandidatiIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analisi' | '/candidati' | '/impostazioni' | '/posizioni'
+  fullPaths:
+    | '/'
+    | '/analisi'
+    | '/candidati'
+    | '/impostazioni'
+    | '/posizioni'
+    | '/candidati/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analisi' | '/candidati' | '/impostazioni' | '/posizioni'
+  to:
+    | '/'
+    | '/analisi'
+    | '/candidati'
+    | '/impostazioni'
+    | '/posizioni'
+    | '/candidati/$id'
   id:
     | '__root__'
     | '/'
@@ -75,12 +96,13 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/candidati/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalisiRoute: typeof AnalisiRoute
-  CandidatiRoute: typeof CandidatiRoute
+  CandidatiRoute: typeof CandidatiRouteWithChildren
   ImpostazioniRoute: typeof ImpostazioniRoute
   PosizioniRoute: typeof PosizioniRoute
 }
@@ -122,16 +144,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/candidati/$id': {
+      id: '/candidati/$id'
+      path: '/$id'
+      fullPath: '/candidati/$id'
+      preLoaderRoute: typeof CandidatiIdRouteImport
+      parentRoute: typeof CandidatiRoute
+    }
   }
 }
+
+interface CandidatiRouteChildren {
+  CandidatiIdRoute: typeof CandidatiIdRoute
+}
+
+const CandidatiRouteChildren: CandidatiRouteChildren = {
+  CandidatiIdRoute: CandidatiIdRoute,
+}
+
+const CandidatiRouteWithChildren = CandidatiRoute._addFileChildren(
+  CandidatiRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalisiRoute: AnalisiRoute,
-  CandidatiRoute: CandidatiRoute,
+  CandidatiRoute: CandidatiRouteWithChildren,
   ImpostazioniRoute: ImpostazioniRoute,
   PosizioniRoute: PosizioniRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

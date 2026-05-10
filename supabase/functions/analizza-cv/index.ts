@@ -8,12 +8,17 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM_PROMPT = `Sei un esperto HR. Analizza il seguente CV e confrontalo con le seguenti posizioni aperte. \
+const SYSTEM_PROMPT_MATCH = `Sei un esperto HR. Analizza il seguente CV e confrontalo con le seguenti posizioni aperte. \
 Per ogni posizione fornisci: punteggio di compatibilità da 0 a 100, motivazione sintetica, \
 punti di forza del candidato rispetto al ruolo, eventuali lacune. \
 Indica quale posizione è più adatta e perché. \
 Se il candidato non è adatto a nessuna posizione, spiegalo chiaramente. \
 Rispondi in italiano in formato JSON strutturato.`;
+
+const SYSTEM_PROMPT_EXTRACT = `Sei un esperto HR. Estrai in modo accurato e strutturato le informazioni dal CV fornito. \
+Rispondi SEMPRE in italiano. Se un'informazione non è presente nel CV, lascia il campo come stringa vuota o array vuoto — NON inventare. \
+Per le lingue, indica nome e livello (es. "Inglese - C1"). Per le competenze tecniche, elenca le principali (max 15). \
+Per i campi personalizzati, restituisci un oggetto chiave-valore solo per quelli effettivamente presenti nel CV.`;
 
 const RESPONSE_SCHEMA = {
   type: "object",
@@ -52,6 +57,66 @@ const RESPONSE_SCHEMA = {
   ],
 } as const;
 
+function buildExtractSchema(customFields: Array<{ etichetta: string }>) {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      nome: { type: "string" },
+      cognome: { type: "string" },
+      eta: { type: "string", description: "Età o data di nascita" },
+      residenza: { type: "string" },
+      nazionalita: { type: "string" },
+      email: { type: "string" },
+      telefono: { type: "string" },
+      lingue: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            lingua: { type: "string" },
+            livello: { type: "string" },
+          },
+          required: ["lingua", "livello"],
+        },
+      },
+      titolo_studio: { type: "string", description: "Titolo di studio più alto conseguito" },
+      istituto: { type: "string", description: "Università o istituto di studio principale" },
+      anni_esperienza: { type: "string", description: "Anni totali di esperienza lavorativa" },
+      ultimo_ruolo: { type: "string" },
+      competenze_tecniche: { type: "array", items: { type: "string" } },
+      certificazioni: { type: "array", items: { type: "string" } },
+      campi_personalizzati: {
+        type: "object",
+        additionalProperties: { type: "string" },
+        description:
+          customFields.length > 0
+            ? "Estrai questi campi se presenti nel CV: " +
+              customFields.map((f) => `"${f.etichetta}"`).join(", ")
+            : "Nessun campo personalizzato",
+      },
+    },
+    required: [
+      "nome",
+      "cognome",
+      "eta",
+      "residenza",
+      "nazionalita",
+      "email",
+      "telefono",
+      "lingue",
+      "titolo_studio",
+      "istituto",
+      "anni_esperienza",
+      "ultimo_ruolo",
+      "competenze_tecniche",
+      "certificazioni",
+      "campi_personalizzati",
+    ],
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -66,7 +131,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 1. Fetch candidato
     const { data: candidato, error: cErr } = await supabase
       .from("candidati")
       .select("id, nome, cognome, cv_path, note")
@@ -75,7 +139,6 @@ Deno.serve(async (req) => {
     if (cErr || !candidato) return json({ error: "Candidato non trovato" }, 404);
     if (!candidato.cv_path) return json({ error: "Il candidato non ha un CV caricato" }, 400);
 
-    // 2. Fetch posizioni
     const { data: posizioni, error: pErr } = await supabase
       .from("posizioni")
       .select("id, titolo, reparto, descrizione, competenze, anni_esperienza, titolo_studio, lingue, luogo")
@@ -84,7 +147,12 @@ Deno.serve(async (req) => {
       return json({ error: "Nessuna posizione trovata" }, 404);
     }
 
-    // 3. Download CV from storage and extract text
+    const { data: customFields } = await supabase
+      .from("campi_personalizzati")
+      .select("etichetta, descrizione")
+      .order("ordine", { ascending: true });
+    const fields = customFields || [];
+
     const { data: file, error: dErr } = await supabase.storage.from("cvs").download(candidato.cv_path);
     if (dErr || !file) return json({ error: "Impossibile scaricare il CV" }, 500);
 
@@ -94,7 +162,8 @@ Deno.serve(async (req) => {
     const cvText = (Array.isArray(pages) ? pages.join("\n\n") : String(pages || "")).trim();
     if (!cvText) return json({ error: "Impossibile estrarre testo dal CV (PDF vuoto o scansione)" }, 422);
 
-    // 4. Build user message
+    const cvSnippet = cvText.slice(0, 18000);
+
     const posizioniText = posizioni
       .map(
         (p, i) =>
@@ -111,55 +180,84 @@ Deno.serve(async (req) => {
       )
       .join("\n\n");
 
-    const userMessage =
+    const matchUserMessage =
       `Candidato: ${candidato.nome} ${candidato.cognome}\n` +
       (candidato.note ? `Note HR: ${candidato.note}\n` : "") +
-      `\n## Testo del CV\n${cvText.slice(0, 18000)}\n\n## Posizioni da valutare\n${posizioniText}\n\n` +
+      `\n## Testo del CV\n${cvSnippet}\n\n## Posizioni da valutare\n${posizioniText}\n\n` +
       `IMPORTANTE: nel campo "valutazioni" usa esattamente l'ID di ciascuna posizione fornito sopra.`;
 
-    // 5. Call Lovable AI Gateway (OpenAI GPT-5)
+    const customFieldsText = fields.length
+      ? fields
+          .map(
+            (f) =>
+              `- "${f.etichetta}"` + (f.descrizione ? `: ${f.descrizione}` : ""),
+          )
+          .join("\n")
+      : "(nessuno)";
+
+    const extractUserMessage =
+      `## Testo del CV\n${cvSnippet}\n\n` +
+      `## Campi personalizzati richiesti dall'HR\n${customFieldsText}\n\n` +
+      `Estrai le informazioni standard e popola "campi_personalizzati" SOLO con i campi sopra elencati che trovi effettivamente nel CV (chiave = etichetta esatta, valore = testo breve).`;
+
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "LOVABLE_API_KEY non configurata" }, 500);
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: "analisi_cv", strict: true, schema: RESPONSE_SCHEMA },
-        },
-      }),
-    });
+    const callAI = async (system: string, user: string, schemaName: string, schema: any) => {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+        body: JSON.stringify({
+          model: "openai/gpt-5",
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: schemaName, strict: true, schema },
+          },
+        }),
+      });
+      return res;
+    };
 
-    if (!aiRes.ok) {
-      const errText = await aiRes.text();
-      console.error("AI gateway error:", aiRes.status, errText);
-      if (aiRes.status === 429) return json({ error: "Limite di richieste AI raggiunto. Riprova tra poco." }, 429);
-      if (aiRes.status === 402) return json({ error: "Crediti AI esauriti. Aggiungi crediti al workspace." }, 402);
+    const [matchRes, extractRes] = await Promise.all([
+      callAI(SYSTEM_PROMPT_MATCH, matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
+      callAI(SYSTEM_PROMPT_EXTRACT, extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),
+    ]);
+
+    if (!matchRes.ok) {
+      const errText = await matchRes.text();
+      console.error("AI match error:", matchRes.status, errText);
+      if (matchRes.status === 429) return json({ error: "Limite di richieste AI raggiunto. Riprova tra poco." }, 429);
+      if (matchRes.status === 402) return json({ error: "Crediti AI esauriti. Aggiungi crediti al workspace." }, 402);
       return json({ error: "Errore dal servizio AI" }, 500);
     }
 
-    const aiJson = await aiRes.json();
-    const content = aiJson.choices?.[0]?.message?.content;
-    if (!content) return json({ error: "Risposta AI vuota" }, 500);
-
+    const matchJson = await matchRes.json();
+    const matchContent = matchJson.choices?.[0]?.message?.content;
+    if (!matchContent) return json({ error: "Risposta AI vuota" }, 500);
     let risultato: any;
     try {
-      risultato = typeof content === "string" ? JSON.parse(content) : content;
-    } catch (_e) {
+      risultato = typeof matchContent === "string" ? JSON.parse(matchContent) : matchContent;
+    } catch {
       return json({ error: "Risposta AI non in formato JSON valido" }, 500);
     }
 
-    // 6. Compute best
+    let estratte: any = null;
+    if (extractRes.ok) {
+      try {
+        const extractJson = await extractRes.json();
+        const c = extractJson.choices?.[0]?.message?.content;
+        estratte = typeof c === "string" ? JSON.parse(c) : c;
+      } catch (e) {
+        console.warn("Extract parse error:", e);
+      }
+    } else {
+      console.warn("Extract AI error:", extractRes.status, await extractRes.text());
+    }
+
     const valutazioni: any[] = Array.isArray(risultato.valutazioni) ? risultato.valutazioni : [];
     const validIds = new Set(posizioni.map((p) => p.id));
     valutazioni.forEach((v) => {
@@ -181,7 +279,6 @@ Deno.serve(async (req) => {
       bestScore = sorted[0].punteggio ?? null;
     }
 
-    // 7. Save analisi
     const { data: saved, error: sErr } = await supabase
       .from("analisi")
       .insert({
@@ -199,10 +296,11 @@ Deno.serve(async (req) => {
       return json({ error: "Errore nel salvataggio dell'analisi" }, 500);
     }
 
-    // 8. Mark candidato as analizzato
-    await supabase.from("candidati").update({ stato_analisi: "analizzato" }).eq("id", candidato_id);
+    const update: Record<string, unknown> = { stato_analisi: "analizzato" };
+    if (estratte) update.informazioni_estratte = estratte;
+    await supabase.from("candidati").update(update).eq("id", candidato_id);
 
-    return json({ analisi: saved });
+    return json({ analisi: saved, informazioni_estratte: estratte });
   } catch (e) {
     console.error("Errore inatteso:", e);
     return json({ error: e instanceof Error ? e.message : "Errore inatteso" }, 500);

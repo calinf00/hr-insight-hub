@@ -56,6 +56,9 @@ function CandidatoDetailPage() {
   const queryClient = useQueryClient();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [draft, setDraft] = useState<Estratte | null>(null);
+  const [promuoviOpen, setPromuoviOpen] = useState(false);
+  const [rivalutaOpen, setRivalutaOpen] = useState(false);
+  const [notaRivaluta, setNotaRivaluta] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["candidato", id],

@@ -144,12 +144,25 @@ Deno.serve(async (req) => {
     if (cErr || !candidato) return json({ error: "Candidato non trovato" }, 404);
     if (!candidato.cv_path) return json({ error: "Il candidato non ha un CV caricato" }, 400);
 
-    const { data: posizioni, error: pErr } = await supabase
+    // Load app settings (lingua output, soglia, escludi posizioni chiuse, openai key)
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("openai_api_key, lingua_output, soglia_non_idoneo, escludi_posizioni_chiuse")
+      .eq("id", "default")
+      .maybeSingle();
+    const lingua = settings?.lingua_output || "Italiano";
+    const soglia = typeof settings?.soglia_non_idoneo === "number" ? settings.soglia_non_idoneo : 30;
+    const escludiChiuse = settings?.escludi_posizioni_chiuse !== false;
+    const userOpenAiKey = settings?.openai_api_key || null;
+
+    let posQuery = supabase
       .from("posizioni")
-      .select("id, titolo, reparto, descrizione, competenze, anni_esperienza, titolo_studio, lingue, luogo")
+      .select("id, titolo, reparto, descrizione, competenze, anni_esperienza, titolo_studio, lingue, luogo, stato")
       .in("id", posizioni_ids);
+    if (escludiChiuse) posQuery = posQuery.neq("stato", "chiusa");
+    const { data: posizioni, error: pErr } = await posQuery;
     if (pErr || !posizioni || posizioni.length === 0) {
-      return json({ error: "Nessuna posizione trovata" }, 404);
+      return json({ error: "Nessuna posizione valida da valutare (controlla che non siano tutte chiuse)" }, 404);
     }
 
     const { data: customFields } = await supabase
@@ -157,6 +170,7 @@ Deno.serve(async (req) => {
       .select("etichetta, descrizione")
       .order("ordine", { ascending: true });
     const fields = customFields || [];
+
 
     const { data: file, error: dErr } = await supabase.storage.from("cvs").download(candidato.cv_path);
     if (dErr || !file) return json({ error: "Impossibile scaricare il CV" }, 500);
@@ -205,15 +219,26 @@ Deno.serve(async (req) => {
       `## Campi personalizzati richiesti dall'HR\n${customFieldsText}\n\n` +
       `Estrai le informazioni standard e popola "campi_personalizzati" SOLO con i campi sopra elencati che trovi effettivamente nel CV (chiave = etichetta esatta, valore = testo breve).`;
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return json({ error: "LOVABLE_API_KEY non configurata" }, 500);
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!userOpenAiKey && !lovableKey) {
+      return json({ error: "Nessuna chiave AI disponibile" }, 500);
+    }
+
+    const useOpenAiDirect = !!userOpenAiKey;
+    const aiUrl = useOpenAiDirect
+      ? "https://api.openai.com/v1/chat/completions"
+      : "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const aiHeaders: Record<string, string> = useOpenAiDirect
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${userOpenAiKey}` }
+      : { "Content-Type": "application/json", "Lovable-API-Key": lovableKey! };
+    const modelName = useOpenAiDirect ? "gpt-4o" : "openai/gpt-5";
 
     const callAI = async (system: string, user: string, schemaName: string, schema: any) => {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      return await fetch(aiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+        headers: aiHeaders,
         body: JSON.stringify({
-          model: "openai/gpt-5",
+          model: modelName,
           messages: [
             { role: "system", content: system },
             { role: "user", content: user },
@@ -224,13 +249,13 @@ Deno.serve(async (req) => {
           },
         }),
       });
-      return res;
     };
 
     const [matchRes, extractRes] = await Promise.all([
-      callAI(SYSTEM_PROMPT_MATCH, matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
-      callAI(SYSTEM_PROMPT_EXTRACT, extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),
+      callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
+      callAI(buildExtractSystemPrompt(lingua), extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),
     ]);
+
 
     if (!matchRes.ok) {
       const errText = await matchRes.text();

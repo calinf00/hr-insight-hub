@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, FileText, Save, User, Calendar, MapPin, Globe, Mail, Phone,
   GraduationCap, Building2, Briefcase, Wrench, Award, Languages, Sparkles, Pencil,
-  Send, Flag,
+  Send, Flag, History, CalendarDays, Briefcase as BriefcaseIcon, StickyNote,
 } from "lucide-react";
 import { toast } from "sonner";
 

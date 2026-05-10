@@ -108,7 +108,37 @@ function CandidatoDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const rivalutaMutation = useMutation({
+    mutationFn: async (params: { attivo: boolean; nota: string }) => {
+      const base: Estratte = (estratte ?? {}) as Estratte;
+      const next: Estratte = {
+        ...base,
+        _da_rivalutare: params.attivo,
+        _nota_rivalutare: params.attivo ? params.nota.trim() || base._nota_rivalutare || "" : "",
+      };
+      const { error } = await supabase
+        .from("candidati")
+        .update({ informazioni_estratte: next as never })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["candidato", id] });
+      queryClient.invalidateQueries({ queryKey: ["candidati"] });
+      toast.success(vars.attivo ? "Candidato segnato da rivalutare" : "Flag rimosso");
+      setRivalutaOpen(false);
+      setNotaRivaluta("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(estratte), [draft, estratte]);
+
+  const statoCand: "attivo" | "archivio" | "rivalutare" = (() => {
+    if (estratte?._da_rivalutare) return "rivalutare";
+    if (data?.posizione_id && data?.posizioni?.stato === "aperta") return "attivo";
+    return "archivio";
+  })();
 
   if (isLoading) {
     return <div className="mx-auto max-w-5xl text-sm text-muted-foreground">Caricamento…</div>;

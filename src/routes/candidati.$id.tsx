@@ -189,12 +189,52 @@ function CandidatoDetailPage() {
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {data.posizioni?.titolo && <span>Ruolo applicato: {data.posizioni.titolo}</span>}
+            {statoCand === "attivo" && (
+              <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-400">
+                🟢 Attivo
+              </Badge>
+            )}
+            {statoCand === "archivio" && (
+              <Badge className="bg-sky-500/15 text-sky-700 border border-sky-500/30 dark:text-sky-400">
+                🔵 In archivio
+              </Badge>
+            )}
+            {statoCand === "rivalutare" && (
+              <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30 dark:text-amber-400">
+                🟡 Da rivalutare
+              </Badge>
+            )}
             <Badge variant={data.stato_analisi === "analizzato" ? "default" : "secondary"}>
               {data.stato_analisi === "analizzato" ? "Analizzato" : "In attesa di analisi"}
             </Badge>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setPromuoviOpen(true)}>
+            <Send className="h-4 w-4" />
+            Proponi per posizione
+          </Button>
+          {estratte?._da_rivalutare ? (
+            <Button
+              variant="outline"
+              onClick={() => rivalutaMutation.mutate({ attivo: false, nota: "" })}
+              disabled={rivalutaMutation.isPending}
+            >
+              <Flag className="h-4 w-4 text-amber-500" />
+              Rimuovi "Da rivalutare"
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setNotaRivaluta(estratte?._nota_rivalutare || "");
+                setRivalutaOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4" />
+              Segna da rivalutare
+            </Button>
+          )}
           {data.cv_path && (
             <Button variant="outline" onClick={() => setPreviewOpen(true)}>
               <FileText className="h-4 w-4" />
@@ -203,6 +243,13 @@ function CandidatoDetailPage() {
           )}
         </div>
       </div>
+
+      {estratte?._da_rivalutare && estratte._nota_rivalutare && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200">
+          <span className="font-medium">Nota rivalutazione: </span>
+          {estratte._nota_rivalutare}
+        </div>
+      )}
 
       <section className="rounded-lg border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">

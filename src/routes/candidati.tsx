@@ -131,6 +131,34 @@ function CandidatiPage() {
   const [filtroTitolo, setFiltroTitolo] = useState<string>(ANY);
   const [filtroResidenza, setFiltroResidenza] = useState<string>(ANY);
 
+  // Filtro temporale (created_at)
+  const [periodoPreset, setPeriodoPreset] = useState<PeriodoPreset>("any");
+  const [dataDa, setDataDa] = useState<string>("");
+  const [dataA, setDataA] = useState<string>("");
+  const [confrontaOpen, setConfrontaOpen] = useState(false);
+
+  const periodoRange = useMemo(() => {
+    if (periodoPreset === "custom") {
+      return {
+        from: dataDa ? new Date(dataDa + "T00:00:00") : undefined,
+        to: dataA ? new Date(dataA + "T23:59:59") : undefined,
+      };
+    }
+    return presetToRange(periodoPreset);
+  }, [periodoPreset, dataDa, dataA]);
+
+  const periodoAttivo = !!(periodoRange.from || periodoRange.to);
+
+  const periodoLabel = useMemo(() => {
+    const opt = PERIODO_OPZIONI.find((o) => o.value === periodoPreset);
+    if (periodoPreset === "custom") {
+      const fmt = (d?: Date) =>
+        d ? d.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+      return `Periodo: ${fmt(periodoRange.from)} → ${fmt(periodoRange.to)}`;
+    }
+    return opt?.label || "Qualsiasi periodo";
+  }, [periodoPreset, periodoRange]);
+
   const { data, isLoading } = useQuery({
     queryKey: ["candidati"],
     queryFn: async () => {

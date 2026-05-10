@@ -221,16 +221,16 @@ Deno.serve(async (req) => {
       `Estrai le informazioni standard e popola "campi_personalizzati" SOLO con i campi sopra elencati che trovi effettivamente nel CV (chiave = etichetta esatta, valore = testo breve).`;
 
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!userOpenAiKey && !lovableKey) {
-      return json({ error: "Nessuna chiave AI disponibile" }, 500);
+    if (!openAiKey && !lovableKey) {
+      return json({ error: "Nessuna chiave AI disponibile (configura OPENAI_API_KEY)" }, 500);
     }
 
-    const useOpenAiDirect = !!userOpenAiKey;
+    const useOpenAiDirect = !!openAiKey;
     const aiUrl = useOpenAiDirect
       ? "https://api.openai.com/v1/chat/completions"
       : "https://ai.gateway.lovable.dev/v1/chat/completions";
     const aiHeaders: Record<string, string> = useOpenAiDirect
-      ? { "Content-Type": "application/json", Authorization: `Bearer ${userOpenAiKey}` }
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${openAiKey}` }
       : { "Content-Type": "application/json", "Lovable-API-Key": lovableKey! };
     const modelName = useOpenAiDirect ? "gpt-4o" : "openai/gpt-5";
 

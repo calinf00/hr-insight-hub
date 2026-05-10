@@ -68,7 +68,6 @@ export type Database = {
           escludi_posizioni_chiuse: boolean
           id: string
           lingua_output: string
-          openai_api_key: string | null
           soglia_non_idoneo: number
           updated_at: string
         }
@@ -77,7 +76,6 @@ export type Database = {
           escludi_posizioni_chiuse?: boolean
           id?: string
           lingua_output?: string
-          openai_api_key?: string | null
           soglia_non_idoneo?: number
           updated_at?: string
         }
@@ -86,7 +84,6 @@ export type Database = {
           escludi_posizioni_chiuse?: boolean
           id?: string
           lingua_output?: string
-          openai_api_key?: string | null
           soglia_non_idoneo?: number
           updated_at?: string
         }
@@ -217,14 +214,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "hr" | "admin"
       canale_provenienza: "linkedin" | "sito" | "referral" | "altro"
       posizione_stato: "aperta" | "chiusa"
       stato_analisi: "in_attesa" | "analizzato"
@@ -361,6 +386,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["hr", "admin"],
       canale_provenienza: ["linkedin", "sito", "referral", "altro"],
       posizione_stato: ["aperta", "chiusa"],
       stato_analisi: ["in_attesa", "analizzato"],

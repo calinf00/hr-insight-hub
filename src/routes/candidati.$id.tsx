@@ -559,3 +559,111 @@ function ListField({
     </div>
   );
 }
+
+type StoricoProps = {
+  candidato: Candidato;
+  analisi: Tables<"analisi">[];
+  posMap: Map<string, string>;
+};
+
+function StoricoCandidature({ candidato, analisi, posMap }: StoricoProps) {
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString("it-IT", {
+      day: "2-digit", month: "short", year: "numeric",
+    });
+
+  type Evento = {
+    ts: number;
+    data: string;
+    icon: typeof Sparkles;
+    color: string;
+    titolo: string;
+    descrizione?: string;
+  };
+
+  const eventi: Evento[] = [];
+
+  eventi.push({
+    ts: new Date(candidato.created_at).getTime(),
+    data: fmt(candidato.created_at),
+    icon: User,
+    color: "text-primary",
+    titolo: "Candidato inserito",
+    descrizione: candidato.canale ? `Canale: ${candidato.canale}` : undefined,
+  });
+
+  if (candidato.posizioni?.titolo) {
+    eventi.push({
+      ts: new Date(candidato.created_at).getTime() + 1,
+      data: fmt(candidato.created_at),
+      icon: BriefcaseIcon,
+      color: "text-emerald-600 dark:text-emerald-400",
+      titolo: `Associato a "${candidato.posizioni.titolo}"`,
+      descrizione: `Posizione ${candidato.posizioni.stato}`,
+    });
+  }
+
+  for (const a of analisi) {
+    const titolo = a.best_posizione_id ? posMap.get(a.best_posizione_id) : null;
+    const numPos = ((a.posizioni_ids as string[]) || []).length;
+    eventi.push({
+      ts: new Date(a.created_at).getTime(),
+      data: fmt(a.created_at),
+      icon: Sparkles,
+      color: "text-primary",
+      titolo: `Analisi AI eseguita${numPos > 0 ? ` su ${numPos} posizione/i` : ""}`,
+      descrizione:
+        titolo && a.best_score !== null
+          ? `Migliore: ${titolo} — ${a.best_score}/100`
+          : a.best_score !== null
+            ? `Punteggio migliore: ${a.best_score}/100`
+            : undefined,
+    });
+  }
+
+  if (candidato.note?.trim()) {
+    eventi.push({
+      ts: new Date(candidato.updated_at).getTime(),
+      data: fmt(candidato.updated_at),
+      icon: StickyNote,
+      color: "text-amber-600 dark:text-amber-400",
+      titolo: "Note HR aggiornate",
+      descrizione: candidato.note.length > 140 ? candidato.note.slice(0, 140) + "…" : candidato.note,
+    });
+  }
+
+  eventi.sort((a, b) => b.ts - a.ts);
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <History className="h-4 w-4 text-primary" />
+        <h2 className="text-lg font-semibold">Storico Candidature</h2>
+        <Badge variant="secondary" className="ml-1">{eventi.length}</Badge>
+      </div>
+      {eventi.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nessun evento registrato.</p>
+      ) : (
+        <ol className="relative ml-2 space-y-4 border-l border-border pl-6">
+          {eventi.map((ev, i) => {
+            const Icon = ev.icon;
+            return (
+              <li key={i} className="relative">
+                <span className="absolute -left-[34px] top-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background">
+                  <Icon className={`h-3.5 w-3.5 ${ev.color}`} />
+                </span>
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <p className="text-sm font-medium text-foreground">{ev.titolo}</p>
+                  <span className="text-xs text-muted-foreground">· {ev.data}</span>
+                </div>
+                {ev.descrizione && (
+                  <p className="mt-0.5 text-sm text-muted-foreground">{ev.descrizione}</p>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}

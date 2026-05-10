@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Users, FileText, Search, X } from "lucide-react";
+import { Plus, Trash2, Users, FileText, Search, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CandidatoFormDialog } from "@/components/candidato-form-dialog";
 import { CvPreviewDialog } from "@/components/cv-preview-dialog";
+import { ConfrontaCvDialog } from "@/components/confronta-cv-dialog";
 
 export const Route = createFileRoute("/candidati")({
   head: () => ({ meta: [{ title: "Candidati — CV Analyzer" }] }),
@@ -55,6 +56,27 @@ const ANNI_RANGES: { value: string; label: string; min: number; max: number }[] 
   { value: "5-10", label: "5–10 anni", min: 5, max: 10 },
   { value: "10+", label: "10+ anni", min: 10, max: Number.POSITIVE_INFINITY },
 ];
+
+type PeriodoPreset = "any" | "30d" | "3m" | "6m" | "1y" | "custom";
+const PERIODO_OPZIONI: { value: PeriodoPreset; label: string }[] = [
+  { value: "any", label: "Qualsiasi periodo" },
+  { value: "30d", label: "Ultimi 30 giorni" },
+  { value: "3m", label: "Ultimi 3 mesi" },
+  { value: "6m", label: "Ultimi 6 mesi" },
+  { value: "1y", label: "Ultimo anno" },
+  { value: "custom", label: "Personalizzato" },
+];
+
+function presetToRange(p: PeriodoPreset): { from?: Date; to?: Date } {
+  if (p === "any" || p === "custom") return {};
+  const now = new Date();
+  const from = new Date(now);
+  if (p === "30d") from.setDate(now.getDate() - 30);
+  else if (p === "3m") from.setMonth(now.getMonth() - 3);
+  else if (p === "6m") from.setMonth(now.getMonth() - 6);
+  else if (p === "1y") from.setFullYear(now.getFullYear() - 1);
+  return { from, to: now };
+}
 
 function getEstratte(c: Candidato): Estratte {
   return (c.informazioni_estratte as Estratte | null) ?? {};
@@ -108,6 +130,34 @@ function CandidatiPage() {
   const [filtroAnni, setFiltroAnni] = useState<string>(ANY);
   const [filtroTitolo, setFiltroTitolo] = useState<string>(ANY);
   const [filtroResidenza, setFiltroResidenza] = useState<string>(ANY);
+
+  // Filtro temporale (created_at)
+  const [periodoPreset, setPeriodoPreset] = useState<PeriodoPreset>("any");
+  const [dataDa, setDataDa] = useState<string>("");
+  const [dataA, setDataA] = useState<string>("");
+  const [confrontaOpen, setConfrontaOpen] = useState(false);
+
+  const periodoRange = useMemo(() => {
+    if (periodoPreset === "custom") {
+      return {
+        from: dataDa ? new Date(dataDa + "T00:00:00") : undefined,
+        to: dataA ? new Date(dataA + "T23:59:59") : undefined,
+      };
+    }
+    return presetToRange(periodoPreset);
+  }, [periodoPreset, dataDa, dataA]);
+
+  const periodoAttivo = !!(periodoRange.from || periodoRange.to);
+
+  const periodoLabel = useMemo(() => {
+    const opt = PERIODO_OPZIONI.find((o) => o.value === periodoPreset);
+    if (periodoPreset === "custom") {
+      const fmt = (d?: Date) =>
+        d ? d.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+      return `Periodo: ${fmt(periodoRange.from)} → ${fmt(periodoRange.to)}`;
+    }
+    return opt?.label || "Qualsiasi periodo";
+  }, [periodoPreset, periodoRange]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["candidati"],
@@ -206,8 +256,16 @@ function CandidatiPage() {
         (c) => getEstratte(c).residenza?.trim() === filtroResidenza,
       );
     }
+    if (periodoRange.from || periodoRange.to) {
+      list = list.filter((c) => {
+        const t = new Date(c.created_at).getTime();
+        if (periodoRange.from && t < periodoRange.from.getTime()) return false;
+        if (periodoRange.to && t > periodoRange.to.getTime()) return false;
+        return true;
+      });
+    }
     return list;
-  }, [data, vista, search, filtroLingua, filtroAnni, filtroTitolo, filtroResidenza]);
+  }, [data, vista, search, filtroLingua, filtroAnni, filtroTitolo, filtroResidenza, periodoRange]);
 
   const deleteMutation = useMutation({
     mutationFn: async (c: Candidato) => {
@@ -235,6 +293,9 @@ function CandidatiPage() {
     setFiltroAnni(ANY);
     setFiltroTitolo(ANY);
     setFiltroResidenza(ANY);
+    setPeriodoPreset("any");
+    setDataDa("");
+    setDataA("");
   };
 
   const filtriAttivi =
@@ -242,7 +303,8 @@ function CandidatiPage() {
     filtroLingua !== ANY ||
     filtroAnni !== ANY ||
     filtroTitolo !== ANY ||
-    filtroResidenza !== ANY;
+    filtroResidenza !== ANY ||
+    periodoAttivo;
 
   const showFiltri = vista !== "attivi";
 
@@ -336,14 +398,53 @@ function CandidatiPage() {
               </SelectContent>
             </Select>
           </div>
-          {filtriAttivi && (
-            <div className="mt-3 flex justify-end">
+
+          <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <Select value={periodoPreset} onValueChange={(v) => setPeriodoPreset(v as PeriodoPreset)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Arco temporale" />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIODO_OPZIONI.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {periodoPreset === "custom" && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Da</label>
+                  <Input type="date" value={dataDa} onChange={(e) => setDataDa(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">A</label>
+                  <Input type="date" value={dataA} onChange={(e) => setDataA(e.target.value)} />
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            {periodoAttivo ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfrontaOpen(true)}
+                disabled={filtered.length === 0}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Confronta CV nel periodo ({filtered.length})
+              </Button>
+            ) : (
+              <span />
+            )}
+            {filtriAttivi && (
               <Button variant="ghost" size="sm" onClick={resetFiltri}>
                 <X className="h-3.5 w-3.5" />
                 Azzera filtri
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -481,6 +582,12 @@ function CandidatiPage() {
       </div>
 
       <CandidatoFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <ConfrontaCvDialog
+        open={confrontaOpen}
+        onOpenChange={setConfrontaOpen}
+        candidati={filtered}
+        periodoLabel={periodoLabel}
+      />
       <CvPreviewDialog candidato={preview} onClose={() => setPreview(null)} />
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>

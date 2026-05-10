@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      posizioni: {
+        Row: {
+          anni_esperienza: number | null
+          competenze: string | null
+          created_at: string
+          descrizione: string
+          id: string
+          lingue: string | null
+          luogo: string | null
+          reparto: string | null
+          stato: Database["public"]["Enums"]["posizione_stato"]
+          titolo: string
+          titolo_studio: Database["public"]["Enums"]["titolo_studio"]
+          updated_at: string
+        }
+        Insert: {
+          anni_esperienza?: number | null
+          competenze?: string | null
+          created_at?: string
+          descrizione: string
+          id?: string
+          lingue?: string | null
+          luogo?: string | null
+          reparto?: string | null
+          stato?: Database["public"]["Enums"]["posizione_stato"]
+          titolo: string
+          titolo_studio?: Database["public"]["Enums"]["titolo_studio"]
+          updated_at?: string
+        }
+        Update: {
+          anni_esperienza?: number | null
+          competenze?: string | null
+          created_at?: string
+          descrizione?: string
+          id?: string
+          lingue?: string | null
+          luogo?: string | null
+          reparto?: string | null
+          stato?: Database["public"]["Enums"]["posizione_stato"]
+          titolo?: string
+          titolo_studio?: Database["public"]["Enums"]["titolo_studio"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +67,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      posizione_stato: "aperta" | "chiusa"
+      titolo_studio:
+        | "nessuno"
+        | "diploma"
+        | "laurea_triennale"
+        | "laurea_magistrale"
+        | "master_dottorato"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +200,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      posizione_stato: ["aperta", "chiusa"],
+      titolo_studio: [
+        "nessuno",
+        "diploma",
+        "laurea_triennale",
+        "laurea_magistrale",
+        "master_dottorato",
+      ],
+    },
   },
 } as const

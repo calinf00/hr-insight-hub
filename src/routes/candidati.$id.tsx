@@ -85,6 +85,40 @@ function CandidatoDetailPage() {
     },
   });
 
+  const { data: analisiList } = useQuery({
+    queryKey: ["analisi", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("analisi")
+        .select("*")
+        .eq("candidato_id", id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Tables<"analisi">[];
+    },
+  });
+
+  const { data: analisiPosizioni } = useQuery({
+    queryKey: ["analisi-posizioni", id, analisiList?.length ?? 0],
+    enabled: !!analisiList && analisiList.length > 0,
+    queryFn: async () => {
+      const ids = Array.from(
+        new Set(
+          (analisiList || [])
+            .flatMap((a) => [a.best_posizione_id, ...((a.posizioni_ids as string[]) || [])])
+            .filter(Boolean) as string[],
+        ),
+      );
+      if (ids.length === 0) return new Map<string, string>();
+      const { data, error } = await supabase
+        .from("posizioni")
+        .select("id, titolo")
+        .in("id", ids);
+      if (error) throw error;
+      return new Map((data || []).map((p) => [p.id, p.titolo]));
+    },
+  });
+
   const estratte: Estratte | null = useMemo(() => {
     return (data?.informazioni_estratte as Estratte | null) ?? null;
   }, [data]);

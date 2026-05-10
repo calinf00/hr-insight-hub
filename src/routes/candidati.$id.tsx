@@ -65,7 +65,7 @@ function CandidatoDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("candidati")
-        .select("*, posizioni(id, titolo)")
+        .select("*, posizioni(id, titolo, stato)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;

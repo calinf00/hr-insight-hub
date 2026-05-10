@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, FileText, Save, User, Calendar, MapPin, Globe, Mail, Phone,
   GraduationCap, Building2, Briefcase, Wrench, Award, Languages, Sparkles, Pencil,
+  Send, Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,9 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CvPreviewDialog } from "@/components/cv-preview-dialog";
+import { PromuoviDialog } from "@/components/promuovi-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 type Candidato = Tables<"candidati"> & {
-  posizioni?: { id: string; titolo: string } | null;
+  posizioni?: { id: string; titolo: string; stato: string } | null;
 };
 
 type Lingua = { lingua: string; livello: string };

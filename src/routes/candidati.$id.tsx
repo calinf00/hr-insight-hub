@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, FileText, Save, User, Calendar, MapPin, Globe, Mail, Phone,
   GraduationCap, Building2, Briefcase, Wrench, Award, Languages, Sparkles, Pencil,
+  Send, Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,9 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CvPreviewDialog } from "@/components/cv-preview-dialog";
+import { PromuoviDialog } from "@/components/promuovi-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 type Candidato = Tables<"candidati"> & {
-  posizioni?: { id: string; titolo: string } | null;
+  posizioni?: { id: string; titolo: string; stato: string } | null;
 };
 
 type Lingua = { lingua: string; livello: string };
@@ -37,6 +42,8 @@ type Estratte = {
   competenze_tecniche?: string[];
   certificazioni?: string[];
   campi_personalizzati?: Record<string, string>;
+  _da_rivalutare?: boolean;
+  _nota_rivalutare?: string;
 };
 
 export const Route = createFileRoute("/candidati/$id")({
@@ -49,13 +56,16 @@ function CandidatoDetailPage() {
   const queryClient = useQueryClient();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [draft, setDraft] = useState<Estratte | null>(null);
+  const [promuoviOpen, setPromuoviOpen] = useState(false);
+  const [rivalutaOpen, setRivalutaOpen] = useState(false);
+  const [notaRivaluta, setNotaRivaluta] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["candidato", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("candidati")
-        .select("*, posizioni(id, titolo)")
+        .select("*, posizioni(id, titolo, stato)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -98,7 +108,37 @@ function CandidatoDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const rivalutaMutation = useMutation({
+    mutationFn: async (params: { attivo: boolean; nota: string }) => {
+      const base: Estratte = (estratte ?? {}) as Estratte;
+      const next: Estratte = {
+        ...base,
+        _da_rivalutare: params.attivo,
+        _nota_rivalutare: params.attivo ? params.nota.trim() || base._nota_rivalutare || "" : "",
+      };
+      const { error } = await supabase
+        .from("candidati")
+        .update({ informazioni_estratte: next as never })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["candidato", id] });
+      queryClient.invalidateQueries({ queryKey: ["candidati"] });
+      toast.success(vars.attivo ? "Candidato segnato da rivalutare" : "Flag rimosso");
+      setRivalutaOpen(false);
+      setNotaRivaluta("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(estratte), [draft, estratte]);
+
+  const statoCand: "attivo" | "archivio" | "rivalutare" = (() => {
+    if (estratte?._da_rivalutare) return "rivalutare";
+    if (data?.posizione_id && data?.posizioni?.stato === "aperta") return "attivo";
+    return "archivio";
+  })();
 
   if (isLoading) {
     return <div className="mx-auto max-w-5xl text-sm text-muted-foreground">Caricamento…</div>;
@@ -149,12 +189,52 @@ function CandidatoDetailPage() {
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {data.posizioni?.titolo && <span>Ruolo applicato: {data.posizioni.titolo}</span>}
+            {statoCand === "attivo" && (
+              <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-400">
+                🟢 Attivo
+              </Badge>
+            )}
+            {statoCand === "archivio" && (
+              <Badge className="bg-sky-500/15 text-sky-700 border border-sky-500/30 dark:text-sky-400">
+                🔵 In archivio
+              </Badge>
+            )}
+            {statoCand === "rivalutare" && (
+              <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30 dark:text-amber-400">
+                🟡 Da rivalutare
+              </Badge>
+            )}
             <Badge variant={data.stato_analisi === "analizzato" ? "default" : "secondary"}>
               {data.stato_analisi === "analizzato" ? "Analizzato" : "In attesa di analisi"}
             </Badge>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setPromuoviOpen(true)}>
+            <Send className="h-4 w-4" />
+            Proponi per posizione
+          </Button>
+          {estratte?._da_rivalutare ? (
+            <Button
+              variant="outline"
+              onClick={() => rivalutaMutation.mutate({ attivo: false, nota: "" })}
+              disabled={rivalutaMutation.isPending}
+            >
+              <Flag className="h-4 w-4 text-amber-500" />
+              Rimuovi "Da rivalutare"
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setNotaRivaluta(estratte?._nota_rivalutare || "");
+                setRivalutaOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4" />
+              Segna da rivalutare
+            </Button>
+          )}
           {data.cv_path && (
             <Button variant="outline" onClick={() => setPreviewOpen(true)}>
               <FileText className="h-4 w-4" />
@@ -163,6 +243,13 @@ function CandidatoDetailPage() {
           )}
         </div>
       </div>
+
+      {estratte?._da_rivalutare && estratte._nota_rivalutare && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200">
+          <span className="font-medium">Nota rivalutazione: </span>
+          {estratte._nota_rivalutare}
+        </div>
+      )}
 
       <section className="rounded-lg border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
@@ -322,6 +409,42 @@ function CandidatoDetailPage() {
       )}
 
       <CvPreviewDialog candidato={previewOpen ? data : null} onClose={() => setPreviewOpen(false)} />
+
+      <PromuoviDialog
+        open={promuoviOpen}
+        onOpenChange={setPromuoviOpen}
+        candidatoId={id}
+        candidatoNome={`${data.nome} ${data.cognome}`}
+      />
+
+      <Dialog open={rivalutaOpen} onOpenChange={setRivalutaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Segna come "Da rivalutare"</DialogTitle>
+            <DialogDescription>
+              Aggiungi una nota per ricordarti perché vuoi rivedere questo candidato in futuro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Nota (opzionale)</Label>
+            <Textarea
+              rows={3}
+              value={notaRivaluta}
+              onChange={(e) => setNotaRivaluta(e.target.value)}
+              placeholder="Es. profilo promettente, da considerare per future aperture nel reparto X…"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRivalutaOpen(false)}>Annulla</Button>
+            <Button
+              onClick={() => rivalutaMutation.mutate({ attivo: true, nota: notaRivaluta })}
+              disabled={rivalutaMutation.isPending}
+            >
+              Conferma
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

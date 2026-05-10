@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Briefcase, Users, Sparkles, Settings, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutDashboard, Briefcase, Users, Sparkles, Settings, LogOut, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -25,6 +26,26 @@ const items = [
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (!uid) { if (!cancelled) setIsAdmin(false); return; }
+      const { data } = await supabase
+        .from("user_roles").select("role").eq("user_id", uid).eq("role", "admin").maybeSingle();
+      if (!cancelled) setIsAdmin(!!data);
+    };
+    void check();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => { void check(); });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, []);
+
+  const navItems = isAdmin
+    ? [...items, { title: "Utenti", url: "/utenti", icon: UserCog }]
+    : items;
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -49,7 +70,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigazione</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => {
+              {navItems.map((item) => {
                 const active = item.url === "/" ? currentPath === "/" : currentPath.startsWith(item.url);
                 return (
                   <SidebarMenuItem key={item.title}>

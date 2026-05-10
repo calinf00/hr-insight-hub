@@ -293,6 +293,9 @@ function CandidatiPage() {
     setFiltroAnni(ANY);
     setFiltroTitolo(ANY);
     setFiltroResidenza(ANY);
+    setPeriodoPreset("any");
+    setDataDa("");
+    setDataA("");
   };
 
   const filtriAttivi =
@@ -300,7 +303,8 @@ function CandidatiPage() {
     filtroLingua !== ANY ||
     filtroAnni !== ANY ||
     filtroTitolo !== ANY ||
-    filtroResidenza !== ANY;
+    filtroResidenza !== ANY ||
+    periodoAttivo;
 
   const showFiltri = vista !== "attivi";
 

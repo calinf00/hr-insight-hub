@@ -582,6 +582,12 @@ function CandidatiPage() {
       </div>
 
       <CandidatoFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <ConfrontaCvDialog
+        open={confrontaOpen}
+        onOpenChange={setConfrontaOpen}
+        candidati={filtered}
+        periodoLabel={periodoLabel}
+      />
       <CvPreviewDialog candidato={preview} onClose={() => setPreview(null)} />
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>

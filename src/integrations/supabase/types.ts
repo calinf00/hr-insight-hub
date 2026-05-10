@@ -62,6 +62,33 @@ export type Database = {
           },
         ]
       }
+      campi_personalizzati: {
+        Row: {
+          created_at: string
+          descrizione: string | null
+          etichetta: string
+          id: string
+          ordine: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descrizione?: string | null
+          etichetta: string
+          id?: string
+          ordine?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descrizione?: string | null
+          etichetta?: string
+          id?: string
+          ordine?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       candidati: {
         Row: {
           canale: Database["public"]["Enums"]["canale_provenienza"] | null
@@ -70,6 +97,7 @@ export type Database = {
           cv_filename: string | null
           cv_path: string | null
           id: string
+          informazioni_estratte: Json | null
           nome: string
           note: string | null
           posizione_id: string | null
@@ -83,6 +111,7 @@ export type Database = {
           cv_filename?: string | null
           cv_path?: string | null
           id?: string
+          informazioni_estratte?: Json | null
           nome: string
           note?: string | null
           posizione_id?: string | null
@@ -96,6 +125,7 @@ export type Database = {
           cv_filename?: string | null
           cv_path?: string | null
           id?: string
+          informazioni_estratte?: Json | null
           nome?: string
           note?: string | null
           posizione_id?: string | null

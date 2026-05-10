@@ -1,3 +1,4 @@
+import { handleDbError } from "@/lib/handle-error";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -139,7 +140,7 @@ function CandidatoDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["candidato", id] });
       toast.success("Modifiche salvate");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const rivalutaMutation = useMutation({
@@ -163,7 +164,7 @@ function CandidatoDetailPage() {
       setRivalutaOpen(false);
       setNotaRivaluta("");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(estratte), [draft, estratte]);

@@ -1,3 +1,4 @@
+import { handleDbError } from "@/lib/handle-error";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -134,7 +135,7 @@ export function PosizioneFormDialog({ open, onOpenChange, posizione }: Props) {
       toast.success(isEdit ? "Posizione aggiornata" : "Posizione creata");
       onOpenChange(false);
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => handleDbError(err, "mutation"),
   });
 
   const stato = form.watch("stato");

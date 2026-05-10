@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Users, FileText, Search, X } from "lucide-react";
+import { Plus, Trash2, Users, FileText, Search, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CandidatoFormDialog } from "@/components/candidato-form-dialog";
 import { CvPreviewDialog } from "@/components/cv-preview-dialog";
+import { ConfrontaCvDialog } from "@/components/confronta-cv-dialog";
 
 export const Route = createFileRoute("/candidati")({
   head: () => ({ meta: [{ title: "Candidati — CV Analyzer" }] }),

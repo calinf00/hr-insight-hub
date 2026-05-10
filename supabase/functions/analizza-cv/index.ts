@@ -80,6 +80,7 @@ const RESPONSE_SCHEMA = {
     "suggerimenti",
     "punti_di_forza_generali",
     "non_adatto",
+    "spiegazione_non_adatto",
   ],
 } as const;
 

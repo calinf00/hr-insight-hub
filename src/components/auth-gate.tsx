@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogIn } from "lucide-react";
+import { Loader2, LogIn, LogOut, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -8,18 +8,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type AuthState = { loading: true } | { loading: false; session: Session | null };
+type AuthState =
+  | { loading: true }
+  | { loading: false; session: Session | null; isHr: boolean | null };
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({ loading: true });
 
+  const refreshRole = async (session: Session | null) => {
+    if (!session) {
+      setState({ loading: false, session: null, isHr: null });
+      return;
+    }
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .eq("role", "hr")
+      .maybeSingle();
+    setState({ loading: false, session, isHr: !!data });
+  };
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setState({ loading: false, session });
+      // Defer DB query to avoid deadlocks inside the auth callback
+      setTimeout(() => { void refreshRole(session); }, 0);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setState({ loading: false, session: data.session });
-    });
+    supabase.auth.getSession().then(({ data }) => { void refreshRole(data.session); });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -32,8 +47,33 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!state.session) return <LoginScreen />;
+  if (!state.isHr) return <PendingApprovalScreen />;
 
   return <>{children}</>;
+}
+
+function PendingApprovalScreen() {
+  const onLogout = async () => {
+    await supabase.auth.signOut();
+  };
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <ShieldAlert className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h1 className="text-base font-semibold">Account in attesa di approvazione</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Il tuo account è stato creato ma non ha ancora i permessi per accedere all'area HR.
+          Contatta un amministratore per ricevere l'accesso.
+        </p>
+        <Button variant="outline" className="mt-6" onClick={onLogout}>
+          <LogOut className="h-4 w-4" />
+          Esci
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function LoginScreen() {
@@ -56,7 +96,7 @@ function LoginScreen() {
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
-        toast.success("Account creato. Controlla la tua email per confermare.");
+        toast.success("Account creato. Un amministratore deve approvarlo prima dell'accesso.");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Errore di autenticazione");
@@ -121,6 +161,11 @@ function LoginScreen() {
             {mode === "login" ? "Registrati" : "Accedi"}
           </button>
         </p>
+        {mode === "signup" && (
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            I nuovi account devono essere approvati da un amministratore.
+          </p>
+        )}
       </div>
     </div>
   );

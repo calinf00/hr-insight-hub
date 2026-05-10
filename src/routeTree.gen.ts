@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UtentiRouteImport } from './routes/utenti'
 import { Route as PosizioniRouteImport } from './routes/posizioni'
 import { Route as ImpostazioniRouteImport } from './routes/impostazioni'
 import { Route as CandidatiRouteImport } from './routes/candidati'
@@ -16,6 +17,11 @@ import { Route as AnalisiRouteImport } from './routes/analisi'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CandidatiIdRouteImport } from './routes/candidati.$id'
 
+const UtentiRoute = UtentiRouteImport.update({
+  id: '/utenti',
+  path: '/utenti',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PosizioniRoute = PosizioniRouteImport.update({
   id: '/posizioni',
   path: '/posizioni',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/utenti'
     | '/candidati/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/utenti'
     | '/candidati/$id'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/utenti'
     | '/candidati/$id'
   fileRoutesById: FileRoutesById
 }
@@ -105,10 +117,18 @@ export interface RootRouteChildren {
   CandidatiRoute: typeof CandidatiRouteWithChildren
   ImpostazioniRoute: typeof ImpostazioniRoute
   PosizioniRoute: typeof PosizioniRoute
+  UtentiRoute: typeof UtentiRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/utenti': {
+      id: '/utenti'
+      path: '/utenti'
+      fullPath: '/utenti'
+      preLoaderRoute: typeof UtentiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/posizioni': {
       id: '/posizioni'
       path: '/posizioni'
@@ -172,7 +192,18 @@ const rootRouteChildren: RootRouteChildren = {
   CandidatiRoute: CandidatiRouteWithChildren,
   ImpostazioniRoute: ImpostazioniRoute,
   PosizioniRoute: PosizioniRoute,
+  UtentiRoute: UtentiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

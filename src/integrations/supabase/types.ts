@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      candidati: {
+        Row: {
+          canale: Database["public"]["Enums"]["canale_provenienza"] | null
+          cognome: string
+          created_at: string
+          cv_filename: string | null
+          cv_path: string | null
+          id: string
+          nome: string
+          note: string | null
+          posizione_id: string | null
+          stato_analisi: Database["public"]["Enums"]["stato_analisi"]
+          updated_at: string
+        }
+        Insert: {
+          canale?: Database["public"]["Enums"]["canale_provenienza"] | null
+          cognome: string
+          created_at?: string
+          cv_filename?: string | null
+          cv_path?: string | null
+          id?: string
+          nome: string
+          note?: string | null
+          posizione_id?: string | null
+          stato_analisi?: Database["public"]["Enums"]["stato_analisi"]
+          updated_at?: string
+        }
+        Update: {
+          canale?: Database["public"]["Enums"]["canale_provenienza"] | null
+          cognome?: string
+          created_at?: string
+          cv_filename?: string | null
+          cv_path?: string | null
+          id?: string
+          nome?: string
+          note?: string | null
+          posizione_id?: string | null
+          stato_analisi?: Database["public"]["Enums"]["stato_analisi"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidati_posizione_id_fkey"
+            columns: ["posizione_id"]
+            isOneToOne: false
+            referencedRelation: "posizioni"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posizioni: {
         Row: {
           anni_esperienza: number | null
@@ -67,7 +117,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      canale_provenienza: "linkedin" | "sito" | "referral" | "altro"
       posizione_stato: "aperta" | "chiusa"
+      stato_analisi: "in_attesa" | "analizzato"
       titolo_studio:
         | "nessuno"
         | "diploma"
@@ -201,7 +253,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      canale_provenienza: ["linkedin", "sito", "referral", "altro"],
       posizione_stato: ["aperta", "chiusa"],
+      stato_analisi: ["in_attesa", "analizzato"],
       titolo_studio: [
         "nessuno",
         "diploma",

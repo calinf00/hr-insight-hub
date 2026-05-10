@@ -409,6 +409,42 @@ function CandidatoDetailPage() {
       )}
 
       <CvPreviewDialog candidato={previewOpen ? data : null} onClose={() => setPreviewOpen(false)} />
+
+      <PromuoviDialog
+        open={promuoviOpen}
+        onOpenChange={setPromuoviOpen}
+        candidatoId={id}
+        candidatoNome={`${data.nome} ${data.cognome}`}
+      />
+
+      <Dialog open={rivalutaOpen} onOpenChange={setRivalutaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Segna come "Da rivalutare"</DialogTitle>
+            <DialogDescription>
+              Aggiungi una nota per ricordarti perché vuoi rivedere questo candidato in futuro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Nota (opzionale)</Label>
+            <Textarea
+              rows={3}
+              value={notaRivaluta}
+              onChange={(e) => setNotaRivaluta(e.target.value)}
+              placeholder="Es. profilo promettente, da considerare per future aperture nel reparto X…"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRivalutaOpen(false)}>Annulla</Button>
+            <Button
+              onClick={() => rivalutaMutation.mutate({ attivo: true, nota: notaRivaluta })}
+              disabled={rivalutaMutation.isPending}
+            >
+              Conferma
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

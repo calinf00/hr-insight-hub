@@ -398,14 +398,53 @@ function CandidatiPage() {
               </SelectContent>
             </Select>
           </div>
-          {filtriAttivi && (
-            <div className="mt-3 flex justify-end">
+
+          <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <Select value={periodoPreset} onValueChange={(v) => setPeriodoPreset(v as PeriodoPreset)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Arco temporale" />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIODO_OPZIONI.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {periodoPreset === "custom" && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Da</label>
+                  <Input type="date" value={dataDa} onChange={(e) => setDataDa(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">A</label>
+                  <Input type="date" value={dataA} onChange={(e) => setDataA(e.target.value)} />
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            {periodoAttivo ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfrontaOpen(true)}
+                disabled={filtered.length === 0}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Confronta CV nel periodo ({filtered.length})
+              </Button>
+            ) : (
+              <span />
+            )}
+            {filtriAttivi && (
               <Button variant="ghost" size="sm" onClick={resetFiltri}>
                 <X className="h-3.5 w-3.5" />
                 Azzera filtri
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

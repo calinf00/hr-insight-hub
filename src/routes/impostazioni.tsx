@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Trash2, Save, Settings as SettingsIcon, ArrowUp, ArrowDown,
-  Key, Sliders, Download, FileSpreadsheet, FileText, Eye, EyeOff,
+  Sliders, Download, FileSpreadsheet, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,7 +44,6 @@ function ImpostazioniPage() {
       </div>
 
       <CampiPersonalizzatiSection />
-      <ApiKeySection />
       <PreferenzeSection />
       <EsportazioneSection />
     </div>
@@ -292,112 +291,6 @@ function CampiPersonalizzatiSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
-  );
-}
-
-/* ============== API KEY ============== */
-function ApiKeySection() {
-  const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
-  const [reveal, setReveal] = useState(false);
-  const [value, setValue] = useState("");
-
-  const { data: settings } = useSettings();
-
-  const saveMutation = useMutation({
-    mutationFn: async (key: string | null) => {
-      const { error } = await supabase
-        .from("app_settings")
-        .update({ openai_api_key: key })
-        .eq("id", "default");
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["app_settings"] });
-      setEditing(false);
-      setReveal(false);
-      setValue("");
-      toast.success("Chiave API salvata");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const stored = settings?.openai_api_key || "";
-  const masked = stored ? `••••••••••••${stored.slice(-4)}` : "";
-
-  return (
-    <section className="rounded-lg border border-border bg-card p-6">
-      <div className="mb-4 flex items-center gap-2">
-        <Key className="h-4 w-4 text-primary" />
-        <h2 className="text-lg font-semibold">Configurazione API</h2>
-      </div>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Chiave API OpenAI personale. Se impostata, le analisi useranno il tuo account OpenAI;
-        in caso contrario verrà usato il gateway AI integrato.
-      </p>
-
-      <div className="space-y-2">
-        <Label htmlFor="openai-key">OpenAI API Key</Label>
-        {!editing ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              id="openai-key"
-              readOnly
-              value={stored ? masked : ""}
-              placeholder="Nessuna chiave configurata"
-              className="max-w-md font-mono text-sm"
-            />
-            <Button variant="outline" onClick={() => { setEditing(true); setValue(""); }}>
-              {stored ? "Modifica" : "Aggiungi"}
-            </Button>
-            {stored && (
-              <Button
-                variant="ghost"
-                onClick={() => saveMutation.mutate(null)}
-                disabled={saveMutation.isPending}
-              >
-                Rimuovi
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative max-w-md flex-1">
-              <Input
-                id="openai-key"
-                type={reveal ? "text" : "password"}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="sk-..."
-                className="pr-9 font-mono text-sm"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={() => setReveal((r) => !r)}
-                className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground"
-                aria-label={reveal ? "Nascondi" : "Mostra"}
-              >
-                {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            <Button
-              onClick={() => saveMutation.mutate(value.trim() || null)}
-              disabled={!value.trim() || saveMutation.isPending}
-            >
-              <Save className="h-4 w-4" />
-              Salva
-            </Button>
-            <Button variant="ghost" onClick={() => { setEditing(false); setValue(""); setReveal(false); }}>
-              Annulla
-            </Button>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Dopo il salvataggio, la chiave non sarà più visibile in chiaro.
-        </p>
-      </div>
     </section>
   );
 }

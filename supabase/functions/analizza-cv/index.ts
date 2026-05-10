@@ -144,16 +144,17 @@ Deno.serve(async (req) => {
     if (cErr || !candidato) return json({ error: "Candidato non trovato" }, 404);
     if (!candidato.cv_path) return json({ error: "Il candidato non ha un CV caricato" }, 400);
 
-    // Load app settings (lingua output, soglia, escludi posizioni chiuse, openai key)
+    // Load app settings (lingua output, soglia, escludi posizioni chiuse)
     const { data: settings } = await supabase
       .from("app_settings")
-      .select("openai_api_key, lingua_output, soglia_non_idoneo, escludi_posizioni_chiuse")
+      .select("lingua_output, soglia_non_idoneo, escludi_posizioni_chiuse")
       .eq("id", "default")
       .maybeSingle();
     const lingua = settings?.lingua_output || "Italiano";
     const soglia = typeof settings?.soglia_non_idoneo === "number" ? settings.soglia_non_idoneo : 30;
     const escludiChiuse = settings?.escludi_posizioni_chiuse !== false;
-    const userOpenAiKey = settings?.openai_api_key || null;
+    // OpenAI key SOLO da secret env
+    const openAiKey = Deno.env.get("OPENAI_API_KEY") || null;
 
     let posQuery = supabase
       .from("posizioni")

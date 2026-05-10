@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      analisi: {
+        Row: {
+          best_posizione_id: string | null
+          best_score: number | null
+          candidato_id: string
+          created_at: string
+          id: string
+          modello: string | null
+          posizioni_ids: string[]
+          risultato: Json
+        }
+        Insert: {
+          best_posizione_id?: string | null
+          best_score?: number | null
+          candidato_id: string
+          created_at?: string
+          id?: string
+          modello?: string | null
+          posizioni_ids?: string[]
+          risultato: Json
+        }
+        Update: {
+          best_posizione_id?: string | null
+          best_score?: number | null
+          candidato_id?: string
+          created_at?: string
+          id?: string
+          modello?: string | null
+          posizioni_ids?: string[]
+          risultato?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analisi_best_posizione_id_fkey"
+            columns: ["best_posizione_id"]
+            isOneToOne: false
+            referencedRelation: "posizioni"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analisi_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "candidati"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidati: {
         Row: {
           canale: Database["public"]["Enums"]["canale_provenienza"] | null

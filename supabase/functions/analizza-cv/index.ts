@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
     const aiHeaders: Record<string, string> = useOpenAiDirect
       ? { "Content-Type": "application/json", Authorization: `Bearer ${openAiKey}` }
       : { "Content-Type": "application/json", "Lovable-API-Key": lovableKey! };
-    const modelName = useOpenAiDirect ? "gpt-4o" : "openai/gpt-5";
+    const modelName = useOpenAiDirect ? "gpt-5.4-mini" : "gpt-5.4-mini";
 
     const callAI = async (system: string, user: string, schemaName: string, schema: any) => {
       return await fetch(aiUrl, {

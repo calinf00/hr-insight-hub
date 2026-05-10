@@ -8,17 +8,22 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM_PROMPT_MATCH = `Sei un esperto HR. Analizza il seguente CV e confrontalo con le seguenti posizioni aperte. \
+function buildMatchSystemPrompt(lingua: string, soglia: number) {
+  return `Sei un esperto HR. Analizza il seguente CV e confrontalo con le seguenti posizioni aperte. \
 Per ogni posizione fornisci: punteggio di compatibilità da 0 a 100, motivazione sintetica, \
 punti di forza del candidato rispetto al ruolo, eventuali lacune. \
 Indica quale posizione è più adatta e perché. \
-Se il candidato non è adatto a nessuna posizione, spiegalo chiaramente. \
-Rispondi in italiano in formato JSON strutturato.`;
+Considera il candidato NON ADATTO se nessuna posizione raggiunge un punteggio di ${soglia}/100. \
+In tal caso imposta "non_adatto": true e spiega chiaramente il motivo. \
+Rispondi in ${lingua} in formato JSON strutturato.`;
+}
 
-const SYSTEM_PROMPT_EXTRACT = `Sei un esperto HR. Estrai in modo accurato e strutturato le informazioni dal CV fornito. \
-Rispondi SEMPRE in italiano. Se un'informazione non è presente nel CV, lascia il campo come stringa vuota o array vuoto — NON inventare. \
+function buildExtractSystemPrompt(lingua: string) {
+  return `Sei un esperto HR. Estrai in modo accurato e strutturato le informazioni dal CV fornito. \
+Rispondi SEMPRE in ${lingua}. Se un'informazione non è presente nel CV, lascia il campo come stringa vuota o array vuoto — NON inventare. \
 Per le lingue, indica nome e livello (es. "Inglese - C1"). Per le competenze tecniche, elenca le principali (max 15). \
 Per i campi personalizzati, restituisci un oggetto chiave-valore solo per quelli effettivamente presenti nel CV.`;
+}
 
 const RESPONSE_SCHEMA = {
   type: "object",

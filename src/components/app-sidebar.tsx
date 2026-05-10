@@ -1,8 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Briefcase, Users, Sparkles, Settings } from "lucide-react";
+import { LayoutDashboard, Briefcase, Users, Sparkles, Settings, LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -22,6 +25,11 @@ const items = [
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) toast.error(error.message);
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -58,6 +66,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Esci" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              <span>Esci</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

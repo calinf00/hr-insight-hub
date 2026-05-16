@@ -49,6 +49,7 @@ function ImpostazioniPage() {
       <PreferenzeSection />
       <EsportazioneSection />
       <ManutenzioneDatiSection />
+      <InfoAppSection />
     </div>
   );
 }

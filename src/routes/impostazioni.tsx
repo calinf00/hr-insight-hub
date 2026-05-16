@@ -4,8 +4,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Trash2, Save, Settings as SettingsIcon, ArrowUp, ArrowDown,
-  Sliders, Download, FileSpreadsheet, FileText,
+  Sliders, Download, FileSpreadsheet, FileText, Wrench, RefreshCw, AlertTriangle,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +48,218 @@ function ImpostazioniPage() {
       <CampiPersonalizzatiSection />
       <PreferenzeSection />
       <EsportazioneSection />
+      <ManutenzioneDatiSection />
     </div>
+  );
+}
+
+/* ============== MANUTENZIONE DATI ============== */
+type CandidatoIncompleto = {
+  id: string;
+  nome: string;
+  cognome: string;
+  cv_filename: string | null;
+  posizione_id: string | null;
+  stato_analisi: string;
+  created_at: string;
+  informazioni_estratte: unknown;
+  motivo: string;
+};
+
+function ManutenzioneDatiSection() {
+  const [scanning, setScanning] = useState(false);
+  const [results, setResults] = useState<CandidatoIncompleto[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0, ok: 0, ko: 0 });
+  const queryClient = useQueryClient();
+
+  const detect = async () => {
+    setScanning(true);
+    setSelected(new Set());
+    setResults(null);
+    try {
+      const { data, error } = await supabase
+        .from("candidati")
+        .select("id, nome, cognome, cv_filename, posizione_id, stato_analisi, created_at, informazioni_estratte")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const onlyNumOrDash = /^[\d\s\-_]+$/;
+      const incompleti: CandidatoIncompleto[] = (data ?? [])
+        .map((c) => {
+          let motivo: string | null = null;
+          if (c.nome === "In elaborazione...") {
+            motivo = "Nome placeholder ('In elaborazione...')";
+          } else if (onlyNumOrDash.test((c.nome ?? "").trim())) {
+            motivo = "Nome solo numerico o trattini";
+          } else if (
+            (c.informazioni_estratte === null || c.informazioni_estratte === undefined) &&
+            c.stato_analisi === "analizzato"
+          ) {
+            motivo = "Analisi completata ma informazioni_estratte vuote";
+          }
+          return motivo ? { ...(c as Omit<CandidatoIncompleto, "motivo">), motivo } : null;
+        })
+        .filter((x): x is CandidatoIncompleto => x !== null);
+
+      setResults(incompleti);
+      toast.success(`Trovati ${incompleti.length} candidati con dati incompleti`);
+    } catch (e) {
+      handleDbError(e, "Errore durante la scansione");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (!results) return;
+    if (selected.size === results.length) setSelected(new Set());
+    else setSelected(new Set(results.map((r) => r.id)));
+  };
+
+  const rianalizza = async () => {
+    if (!results || selected.size === 0) return;
+    const queue = results.filter((r) => selected.has(r.id));
+
+    // Recupera posizioni aperte come fallback se il candidato non ne ha una.
+    const { data: posAperte } = await supabase
+      .from("posizioni")
+      .select("id")
+      .eq("stato", "aperta")
+      .order("created_at", { ascending: false });
+    const fallbackPosId = posAperte?.[0]?.id ?? null;
+
+    setRunning(true);
+    setProgress({ done: 0, total: queue.length, ok: 0, ko: 0 });
+
+    for (let i = 0; i < queue.length; i++) {
+      const c = queue[i];
+      try {
+        const posId = c.posizione_id ?? fallbackPosId;
+        if (!posId) throw new Error("Nessuna posizione disponibile");
+        await supabase
+          .from("candidati")
+          .update({ stato_analisi: "in_attesa", note_errore: null })
+          .eq("id", c.id);
+        const { error } = await supabase.functions.invoke("analizza-cv", {
+          body: { candidato_id: c.id, posizioni_ids: [posId], extract_only: false },
+        });
+        if (error) throw error;
+        setProgress((p) => ({ ...p, done: p.done + 1, ok: p.ok + 1 }));
+      } catch (e) {
+        console.error("Rianalisi fallita per", c.id, e);
+        setProgress((p) => ({ ...p, done: p.done + 1, ko: p.ko + 1 }));
+      }
+      // Delay di 2s tra una rianalisi e l'altra per evitare rate limit OpenAI.
+      if (i < queue.length - 1) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+
+    setRunning(false);
+    toast.success("Rianalisi completata");
+    void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+    void queryClient.invalidateQueries({ queryKey: ["candidati"] });
+    // Ricarica la lista incompleti
+    await detect();
+  };
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Wrench className="h-4 w-4 text-primary" />
+        <h2 className="text-lg font-semibold">Manutenzione dati</h2>
+      </div>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Trova candidati con nome/cognome placeholder o informazioni estratte mancanti
+        e rilancia l'analisi AI in batch.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={detect} disabled={scanning || running}>
+          <AlertTriangle className="h-4 w-4" />
+          {scanning ? "Scansione…" : "Rileva candidati con dati incompleti"}
+        </Button>
+        {results && results.length > 0 && (
+          <Button
+            variant="default"
+            onClick={rianalizza}
+            disabled={selected.size === 0 || running}
+          >
+            <RefreshCw className={`h-4 w-4 ${running ? "animate-spin" : ""}`} />
+            {running
+              ? `Rianalisi ${progress.done}/${progress.total}…`
+              : `Rianalizza selezionati (${selected.size})`}
+          </Button>
+        )}
+      </div>
+
+      {running && (
+        <div className="mt-3 text-xs text-muted-foreground">
+          Progresso: {progress.done}/{progress.total} · ok {progress.ok} · errori {progress.ko}
+        </div>
+      )}
+
+      {results && results.length === 0 && (
+        <div className="mt-4 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
+          Nessun candidato con dati incompleti. 🎉
+        </div>
+      )}
+
+      {results && results.length > 0 && (
+        <div className="mt-4 overflow-hidden rounded-md border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs">
+              <tr>
+                <th className="p-2 text-left w-10">
+                  <Checkbox
+                    checked={selected.size === results.length && results.length > 0}
+                    onCheckedChange={toggleAll}
+                    aria-label="Seleziona tutti"
+                  />
+                </th>
+                <th className="p-2 text-left">Candidato</th>
+                <th className="p-2 text-left">File CV</th>
+                <th className="p-2 text-left">Stato</th>
+                <th className="p-2 text-left">Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.map((c) => (
+                <tr key={c.id} className="border-t border-border">
+                  <td className="p-2">
+                    <Checkbox
+                      checked={selected.has(c.id)}
+                      onCheckedChange={() => toggle(c.id)}
+                      aria-label={`Seleziona ${c.nome}`}
+                    />
+                  </td>
+                  <td className="p-2">
+                    <div className="font-medium">{c.nome} {c.cognome}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(c.created_at).toLocaleDateString("it-IT")}
+                    </div>
+                  </td>
+                  <td className="p-2 text-xs text-muted-foreground">{c.cv_filename ?? "—"}</td>
+                  <td className="p-2 text-xs">{c.stato_analisi}</td>
+                  <td className="p-2 text-xs text-amber-700 dark:text-amber-400">{c.motivo}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 

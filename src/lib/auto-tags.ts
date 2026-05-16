@@ -73,9 +73,9 @@ function tagsCompetenze(comp: string[] | undefined): string[] {
     .slice(0, 5);
 }
 
-function tagsCertificazioni(cert: string[] | undefined): string[] {
+function tagsCertificazioni(cert: CertificazioneItem[] | undefined): string[] {
   return (cert ?? [])
-    .map((c) => (c ?? "").trim())
+    .map((c) => (typeof c === "string" ? c : c?.nome ?? "").trim())
     .filter(Boolean)
     .map((c) => (c.length > 60 ? c.slice(0, 57) + "…" : c));
 }

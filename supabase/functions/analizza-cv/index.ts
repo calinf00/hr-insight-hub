@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
       .select("lingua_output, soglia_non_idoneo, escludi_posizioni_chiuse")
       .eq("id", "default")
       .maybeSingle();
-    const lingua = linguaOverride || settings?.lingua_output || "Italiano";
+    const lingua = sanitizeLingua(linguaOverride, settings?.lingua_output ?? "Italiano");
     const soglia = typeof sogliaOverride === "number"
       ? sogliaOverride
       : (typeof settings?.soglia_non_idoneo === "number" ? settings.soglia_non_idoneo : 30);

@@ -408,8 +408,22 @@ Deno.serve(async (req) => {
         throw withStatus("Errore nel salvataggio dell'analisi", 500);
       }
 
-      const update: Record<string, unknown> = { stato_analisi: "analizzato" };
-      if (estratte) update.informazioni_estratte = estratte;
+      // Verifica se l'estrazione AI ha prodotto dati utili.
+      const hasEstratte =
+        estratte && typeof estratte === "object" && Object.keys(estratte).length > 0;
+
+      const update: Record<string, unknown> = {};
+      if (hasEstratte) {
+        update.stato_analisi = "analizzato";
+        update.informazioni_estratte = estratte;
+        update.note_errore = null;
+      } else {
+        // Dopo i retry l'estrazione è fallita: marca il candidato con stato dedicato.
+        update.stato_analisi = "errore_estrazione";
+        update.note_errore = extractRes.ok
+          ? "L'AI non ha restituito informazioni utili dal CV."
+          : `Estrazione AI fallita (HTTP ${extractRes.status}).`;
+      }
 
       // Sovrascrive SEMPRE nome/cognome con i dati estratti dall'AI per
       // evitare di lasciare placeholder tipo "In elaborazione..." nel record.

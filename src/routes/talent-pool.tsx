@@ -480,12 +480,19 @@ function TalentPoolPage() {
     toast.success(`Stato aggiornato: ${STATO_BADGE[s].label}`);
   };
 
-  const updateTags = (cid: string, tags: string[]) => {
+  const updateTags = async (cid: string, tags: string[]) => {
+    // Persistenza primaria su DB; fallback su localStorage in caso di errore RLS
     setTagsMap((prev) => {
       const next = { ...prev, [cid]: tags };
       saveMap(TAGS_KEY, next);
       return next;
     });
+    const { error } = await supabase.from("candidati").update({ tags }).eq("id", cid);
+    if (error) {
+      toast.error("Tag salvati solo localmente");
+    } else {
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+    }
   };
 
   const noteMutation = useMutation({

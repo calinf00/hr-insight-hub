@@ -508,12 +508,31 @@ function TalentPoolPage() {
     onError: (e) => handleDbError(e, "Errore aggiornamento nota"),
   });
 
+  // Estrae il messaggio completo restituito dalla edge function (incluso body).
+  const extractInvokeError = async (error: any): Promise<string> => {
+    try {
+      const ctx = error?.context;
+      if (ctx && typeof ctx.json === "function") {
+        const body = await ctx.json();
+        if (body?.error) return String(body.error);
+        return JSON.stringify(body);
+      }
+      if (ctx && typeof ctx.text === "function") {
+        const txt = await ctx.text();
+        if (txt) return txt;
+      }
+    } catch {
+      // ignora
+    }
+    return error?.message || "Errore sconosciuto";
+  };
+
   const associaMutation = useMutation({
     mutationFn: async ({ candidatoId, posizioneId }: { candidatoId: string; posizioneId: string }) => {
       const { error } = await supabase.functions.invoke("analizza-cv", {
         body: { candidato_id: candidatoId, posizioni_ids: [posizioneId], extract_only: false },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractInvokeError(error));
     },
     onSuccess: () => {
       toast.success("Analisi avviata sulla nuova posizione");
@@ -522,7 +541,10 @@ function TalentPoolPage() {
       setAssociaPosId("");
       void queryClient.invalidateQueries({ queryKey: ["talent-pool", "analisi"] });
     },
-    onError: (e) => handleDbError(e, "Errore associazione posizione"),
+    onError: (e: any) => {
+      console.error("[associa] errore edge function:", e);
+      toast.error(e?.message || "Errore associazione posizione", { duration: 10000 });
+    },
   });
 
   // Rilancia l'analisi per un singolo candidato (es. dopo "errore_estrazione").
@@ -537,14 +559,17 @@ function TalentPoolPage() {
       const { error } = await supabase.functions.invoke("analizza-cv", {
         body: { candidato_id: candidatoId, posizioni_ids: [posId], extract_only: false },
       });
-      if (error) throw error;
+      if (error) throw new Error(await extractInvokeError(error));
     },
     onSuccess: () => {
       toast.success("Analisi rilanciata");
       void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
       void queryClient.invalidateQueries({ queryKey: ["talent-pool", "analisi"] });
     },
-    onError: (e) => handleDbError(e, "Errore nel rilancio dell'analisi"),
+    onError: (e: any) => {
+      console.error("[retry] errore edge function:", e);
+      toast.error(e?.message || "Errore nel rilancio dell'analisi", { duration: 10000 });
+    },
   });
 
   const openCandidato = useMemo(

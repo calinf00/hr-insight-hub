@@ -115,13 +115,21 @@ function buildExtractSchema(customFields: Array<{ etichetta: string }>) {
       competenze_tecniche: { type: "array", items: { type: "string" } },
       certificazioni: { type: "array", items: { type: "string" } },
       campi_personalizzati: {
-        type: "object",
-        additionalProperties: { type: "string" },
+        type: "array",
         description:
           customFields.length > 0
-            ? "Estrai questi campi se presenti nel CV: " +
+            ? "Coppie chiave/valore SOLO per questi campi se presenti nel CV: " +
               customFields.map((f) => `"${f.etichetta}"`).join(", ")
-            : "Nessun campo personalizzato",
+            : "Lascia array vuoto: nessun campo personalizzato configurato.",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            chiave: { type: "string" },
+            valore: { type: "string" },
+          },
+          required: ["chiave", "valore"],
+        },
       },
     },
     required: [
@@ -188,13 +196,22 @@ Deno.serve(async (req) => {
 
     const isBatch = batch_mode === true && Array.isArray(candidati_ids) && candidati_ids.length > 0;
 
+    // (a) OPENAI_API_KEY obbligatoria nei secret
+    if (!Deno.env.get("OPENAI_API_KEY")) {
+      return json({ error: "CONFIGURAZIONE: OPENAI_API_KEY mancante nei secret Supabase" }, 400);
+    }
+
+    // (b) candidato_id obbligatorio in modalità singola
     if (!isBatch) {
-      if (!candidato_id || !Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
-        return json({ error: "candidato_id e posizioni_ids sono obbligatori" }, 400);
+      if (!candidato_id || typeof candidato_id !== "string" || candidato_id.trim() === "") {
+        return json({ error: "RICHIESTA: candidato_id mancante" }, 400);
+      }
+      if (!Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
+        return json({ error: "RICHIESTA: posizioni_ids mancante o vuoto" }, 400);
       }
     } else {
       if (!Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
-        return json({ error: "posizioni_ids è obbligatorio" }, 400);
+        return json({ error: "RICHIESTA: posizioni_ids mancante o vuoto" }, 400);
       }
     }
 
@@ -295,14 +312,27 @@ Deno.serve(async (req) => {
       if (cErr || !candidato) throw withStatus("Candidato non trovato", 404);
       if (!candidato.cv_path) throw withStatus("Il candidato non ha un CV caricato", 400);
 
+      // (c) Download PDF da Supabase Storage
       const { data: file, error: dErr } = await supabase.storage.from("cvs").download(candidato.cv_path);
-      if (dErr || !file) throw withStatus("Impossibile scaricare il CV", 500);
+      if (dErr || !file || file.size === 0) {
+        throw withStatus(
+          `STORAGE: PDF non trovato o vuoto per path: ${candidato.cv_path}` +
+            (dErr ? ` (${dErr.message})` : ""),
+          400,
+        );
+      }
 
       const buffer = new Uint8Array(await file.arrayBuffer());
+      if (buffer.byteLength === 0) {
+        throw withStatus(`STORAGE: PDF non trovato o vuoto per path: ${candidato.cv_path}`, 400);
+      }
       const pdf = await getDocumentProxy(buffer);
       const { text: pages } = await extractText(pdf, { mergePages: false });
       const cvText = (Array.isArray(pages) ? pages.join("\n\n") : String(pages || "")).trim();
       if (!cvText) throw withStatus("Impossibile estrarre testo dal CV (PDF vuoto o scansione)", 422);
+
+      // (d) Log caratteri estratti
+      console.log(`[analizza-cv] cid=${cid} cv_path=${candidato.cv_path} chars=${cvText.length}`);
 
       const cvSnippet = sanitizeUntrustedText(cvText.slice(0, 18000));
 
@@ -334,17 +364,24 @@ Deno.serve(async (req) => {
         `## Campi personalizzati richiesti dall'HR\n${customFieldsText}\n\n` +
         `Estrai le informazioni standard e popola "campi_personalizzati" SOLO con i campi sopra elencati che trovi effettivamente nel CV (chiave = etichetta esatta, valore = testo breve).`;
 
-      const [matchRes, extractRes] = await Promise.all([
-        callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
-        callAI(buildExtractSystemPrompt(lingua), extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),
-      ]);
+      let matchRes: Response;
+      let extractRes: Response;
+      try {
+        [matchRes, extractRes] = await Promise.all([
+          callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
+          callAI(buildExtractSystemPrompt(lingua), extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),
+        ]);
+      } catch (aiErr: any) {
+        console.error("AI fetch threw:", aiErr);
+        throw withStatus(`OPENAI: chiamata fallita: ${aiErr?.message ?? String(aiErr)}`, 502);
+      }
 
       if (!matchRes.ok) {
         const errText = await matchRes.text();
         console.error("AI match error:", matchRes.status, errText);
-        if (matchRes.status === 429) throw withStatus("Limite di richieste AI raggiunto. Riprova tra poco.", 429);
-        if (matchRes.status === 402) throw withStatus("Crediti AI esauriti. Aggiungi crediti al workspace.", 402);
-        throw withStatus("Errore dal servizio AI", 500);
+        if (matchRes.status === 429) throw withStatus(`OPENAI HTTP 429 (rate limit): ${errText.slice(0, 800)}`, 429);
+        if (matchRes.status === 402) throw withStatus(`OPENAI HTTP 402 (crediti): ${errText.slice(0, 800)}`, 402);
+        throw withStatus(`OPENAI HTTP ${matchRes.status}: ${errText.slice(0, 800)}`, 400);
       }
 
       const matchJson = await matchRes.json();
@@ -358,16 +395,28 @@ Deno.serve(async (req) => {
       }
 
       let estratte: any = null;
+      let extractErrorDetail: string | null = null;
       if (extractRes.ok) {
         try {
           const extractJson = await extractRes.json();
           const c = extractJson.choices?.[0]?.message?.content;
           estratte = typeof c === "string" ? JSON.parse(c) : c;
+          // Normalizza campi_personalizzati: array [{chiave,valore}] -> object {chiave:valore}
+          if (estratte && Array.isArray(estratte.campi_personalizzati)) {
+            const obj: Record<string, string> = {};
+            for (const item of estratte.campi_personalizzati) {
+              if (item && typeof item.chiave === "string") obj[item.chiave] = String(item.valore ?? "");
+            }
+            estratte.campi_personalizzati = obj;
+          }
         } catch (e) {
           console.warn("Extract parse error:", e);
+          extractErrorDetail = `parse error: ${(e as Error).message}`;
         }
       } else {
-        console.warn("Extract AI error:", extractRes.status, await extractRes.text());
+        const errBody = await extractRes.text();
+        console.warn("Extract AI error:", extractRes.status, errBody);
+        extractErrorDetail = `HTTP ${extractRes.status}: ${errBody.slice(0, 500)}`;
       }
 
       const valutazioni: any[] = Array.isArray(risultato.valutazioni) ? risultato.valutazioni : [];
@@ -420,9 +469,8 @@ Deno.serve(async (req) => {
       } else {
         // Dopo i retry l'estrazione è fallita: marca il candidato con stato dedicato.
         update.stato_analisi = "errore_estrazione";
-        update.note_errore = extractRes.ok
-          ? "L'AI non ha restituito informazioni utili dal CV."
-          : `Estrazione AI fallita (HTTP ${extractRes.status}).`;
+        update.note_errore =
+          extractErrorDetail ?? "L'AI non ha restituito informazioni utili dal CV.";
       }
 
       // Sovrascrive SEMPRE nome/cognome con i dati estratti dall'AI per

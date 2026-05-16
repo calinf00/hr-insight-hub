@@ -52,6 +52,8 @@ interface Props {
 export function CandidatoFormDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
+  const [duplicates, setDuplicates] = useState<CandidatoLite[]>([]);
+  const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),

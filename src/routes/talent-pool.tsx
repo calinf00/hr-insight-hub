@@ -1014,7 +1014,7 @@ function TalentPoolPage() {
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {r.tags.map((t) => (
-                            <Badge key={t} variant="outline" className="text-xs">
+                            <Badge key={t} variant="outline" className={`text-xs ${tagChipClass(t)}`}>
                               {t}
                             </Badge>
                           ))}

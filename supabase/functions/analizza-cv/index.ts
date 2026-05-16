@@ -366,16 +366,28 @@ Deno.serve(async (req) => {
       }
 
       let estratte: any = null;
+      let extractErrorDetail: string | null = null;
       if (extractRes.ok) {
         try {
           const extractJson = await extractRes.json();
           const c = extractJson.choices?.[0]?.message?.content;
           estratte = typeof c === "string" ? JSON.parse(c) : c;
+          // Normalizza campi_personalizzati: array [{chiave,valore}] -> object {chiave:valore}
+          if (estratte && Array.isArray(estratte.campi_personalizzati)) {
+            const obj: Record<string, string> = {};
+            for (const item of estratte.campi_personalizzati) {
+              if (item && typeof item.chiave === "string") obj[item.chiave] = String(item.valore ?? "");
+            }
+            estratte.campi_personalizzati = obj;
+          }
         } catch (e) {
           console.warn("Extract parse error:", e);
+          extractErrorDetail = `parse error: ${(e as Error).message}`;
         }
       } else {
-        console.warn("Extract AI error:", extractRes.status, await extractRes.text());
+        const errBody = await extractRes.text();
+        console.warn("Extract AI error:", extractRes.status, errBody);
+        extractErrorDetail = `HTTP ${extractRes.status}: ${errBody.slice(0, 500)}`;
       }
 
       const valutazioni: any[] = Array.isArray(risultato.valutazioni) ? risultato.valutazioni : [];

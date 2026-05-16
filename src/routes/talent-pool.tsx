@@ -1158,12 +1158,12 @@ function TalentPoolPage() {
                   <Label className="text-xs">Tag</Label>
                   <div className="flex flex-wrap gap-1">
                     {openCandidato.tags.map((t) => (
-                      <Badge key={t} variant="secondary" className="text-xs">
+                      <Badge key={t} variant="outline" className={`text-xs ${tagChipClass(t)}`}>
                         {t}
                         <button
                           className="ml-1 hover:text-destructive"
                           onClick={() =>
-                            updateTags(
+                            void updateTags(
                               openCandidato.candidato.id,
                               openCandidato.tags.filter((x) => x !== t),
                             )

@@ -206,15 +206,14 @@ function UploadMultiploPage() {
       if (upErr) throw upErr;
       cv_path = path;
 
-      // 2. Create candidato record (nome/cognome placeholder; verranno
-      // sovrascritti dall'estrazione AI quando disponibile)
-      const fallbackNome = baseName.split("-")[0] || "Candidato";
-      const fallbackCognome = baseName.split("-").slice(1).join(" ") || "Da analizzare";
+      // 2. Create candidato record con placeholder chiari.
+      // L'edge function "analizza-cv" sovrascrive nome/cognome con i dati
+      // estratti dal CV al termine dell'analisi.
       const { data: cand, error: insErr } = await supabase
         .from("candidati")
         .insert({
-          nome: fallbackNome,
-          cognome: fallbackCognome,
+          nome: "In elaborazione...",
+          cognome: "",
           posizione_id: posizioneId,
           cv_path,
           cv_filename: f.name,

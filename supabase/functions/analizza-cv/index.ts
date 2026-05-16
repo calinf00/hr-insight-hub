@@ -394,6 +394,18 @@ Deno.serve(async (req) => {
 
       const update: Record<string, unknown> = { stato_analisi: "analizzato" };
       if (estratte) update.informazioni_estratte = estratte;
+
+      // Sovrascrive SEMPRE nome/cognome con i dati estratti dall'AI per
+      // evitare di lasciare placeholder tipo "In elaborazione..." nel record.
+      const estrNome = typeof (estratte as any)?.nome === "string" ? String((estratte as any).nome).trim() : "";
+      const estrCognome = typeof (estratte as any)?.cognome === "string" ? String((estratte as any).cognome).trim() : "";
+      if (estrNome || estrCognome) {
+        update.nome = estrNome || "Candidato";
+        update.cognome = estrCognome || "";
+      } else {
+        update.nome = "Candidato";
+        update.cognome = "Sconosciuto";
+      }
       await supabase.from("candidati").update(update).eq("id", cid);
 
       return { analisi: saved, informazioni_estratte: estratte };

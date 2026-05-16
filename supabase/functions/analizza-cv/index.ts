@@ -543,9 +543,9 @@ Deno.serve(async (req) => {
       if (!matchRes.ok) {
         const errText = await matchRes.text();
         console.error("AI match error:", matchRes.status, errText);
-        if (matchRes.status === 429) throw withStatus(`OPENAI HTTP 429 (rate limit): ${errText.slice(0, 800)}`, 429);
-        if (matchRes.status === 402) throw withStatus(`OPENAI HTTP 402 (crediti): ${errText.slice(0, 800)}`, 402);
-        throw withStatus(`OPENAI HTTP ${matchRes.status}: ${errText.slice(0, 800)}`, 400);
+        if (matchRes.status === 429) throw withStatus("Servizio AI temporaneamente non disponibile (rate limit). Riprova tra qualche minuto.", 429);
+        if (matchRes.status === 402) throw withStatus("Servizio AI temporaneamente non disponibile (crediti esauriti).", 402);
+        throw withStatus("Servizio AI temporaneamente non disponibile. Riprova più tardi.", 502);
       }
 
       const matchJson = await matchRes.json();

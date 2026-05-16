@@ -206,14 +206,18 @@ Deno.serve(async (req) => {
     // OpenAI key SOLO da secret env
     const openAiKey = Deno.env.get("OPENAI_API_KEY") || null;
 
-    let posQuery = supabase
-      .from("posizioni")
-      .select("id, titolo, reparto, descrizione, competenze, anni_esperienza, titolo_studio, lingue, luogo, stato")
-      .in("id", posizioni_ids);
-    if (escludiChiuse) posQuery = posQuery.neq("stato", "chiusa");
-    const { data: posizioni, error: pErr } = await posQuery;
-    if (pErr || !posizioni || posizioni.length === 0) {
-      return json({ error: "Nessuna posizione valida da valutare (controlla che non siano tutte chiuse)" }, 404);
+    let posizioni: Array<{ id: string; titolo: string; reparto: string | null; descrizione: string; competenze: string | null; anni_esperienza: number | null; titolo_studio: string; lingue: string | null; luogo: string | null; stato: string }> = [];
+    if (!extract_only) {
+      let posQuery = supabase
+        .from("posizioni")
+        .select("id, titolo, reparto, descrizione, competenze, anni_esperienza, titolo_studio, lingue, luogo, stato")
+        .in("id", posizioni_ids);
+      if (escludiChiuse) posQuery = posQuery.neq("stato", "chiusa");
+      const { data: pData, error: pErr } = await posQuery;
+      if (pErr || !pData || pData.length === 0) {
+        return json({ error: "Nessuna posizione valida da valutare (controlla che non siano tutte chiuse)" }, 404);
+      }
+      posizioni = pData;
     }
 
     const { data: customFields } = await supabase

@@ -243,21 +243,37 @@ Deno.serve(async (req) => {
     const modelName = useOpenAiDirect ? "gpt-5.4-mini" : "gpt-5.4-mini";
 
     const callAI = async (system: string, user: string, schemaName: string, schema: any) => {
-      return await fetch(aiUrl, {
-        method: "POST",
-        headers: aiHeaders,
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: user },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: { name: schemaName, strict: true, schema },
-          },
-        }),
-      });
+      // Retry automatico con exponential backoff su 429/503.
+      // Tentativi: iniziale + 3 retry. Delay: 5s, 15s, 30s.
+      const delays = [5000, 15000, 30000];
+      let lastRes: Response | null = null;
+      for (let attempt = 0; attempt <= delays.length; attempt++) {
+        const res = await fetch(aiUrl, {
+          method: "POST",
+          headers: aiHeaders,
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: { name: schemaName, strict: true, schema },
+            },
+          }),
+        });
+        lastRes = res;
+        if (res.status !== 429 && res.status !== 503) return res;
+        if (attempt === delays.length) {
+          console.warn(`AI ${res.status} dopo ${delays.length} retry, abbandono.`);
+          return res;
+        }
+        const wait = delays[attempt];
+        console.warn(`AI ${res.status} (tentativo ${attempt + 1}), retry tra ${wait / 1000}s`);
+        await new Promise((r) => setTimeout(r, wait));
+      }
+      return lastRes as Response;
     };
 
     const customFieldsText = fields.length

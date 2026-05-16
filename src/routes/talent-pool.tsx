@@ -973,6 +973,11 @@ function TalentPoolPage() {
                       >
                         {r.candidato.nome} {r.candidato.cognome}
                       </button>
+                      {r.candidato.nome === "In elaborazione..." && (
+                        <Badge className="ml-2 bg-yellow-500/15 text-yellow-700 border border-yellow-500/30 dark:text-yellow-400">
+                          ⚠ Dati incompleti
+                        </Badge>
+                      )}
                     </TableCell>
                     {showCol("email") && (
                       <TableCell className="text-sm">{r.estratte?.email ?? "—"}</TableCell>

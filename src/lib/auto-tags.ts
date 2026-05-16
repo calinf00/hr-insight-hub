@@ -6,12 +6,14 @@ export interface Lingua {
   livello?: string;
 }
 
+export type CertificazioneItem = string | { nome?: string; ente?: string; anno?: string; scadenza?: string };
+
 export interface InformazioniEstratte {
   lingue?: Lingua[];
   titolo_studio?: string;
   anni_esperienza?: string;
   competenze_tecniche?: string[];
-  certificazioni?: string[];
+  certificazioni?: CertificazioneItem[];
   [k: string]: unknown;
 }
 
@@ -71,9 +73,9 @@ function tagsCompetenze(comp: string[] | undefined): string[] {
     .slice(0, 5);
 }
 
-function tagsCertificazioni(cert: string[] | undefined): string[] {
+function tagsCertificazioni(cert: CertificazioneItem[] | undefined): string[] {
   return (cert ?? [])
-    .map((c) => (c ?? "").trim())
+    .map((c) => (typeof c === "string" ? c : c?.nome ?? "").trim())
     .filter(Boolean)
     .map((c) => (c.length > 60 ? c.slice(0, 57) + "…" : c));
 }

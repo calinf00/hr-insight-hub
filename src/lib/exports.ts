@@ -12,7 +12,7 @@ interface Estratte {
   nazionalita?: string; email?: string; telefono?: string;
   lingue?: Lingua[]; titolo_studio?: string; istituto?: string;
   anni_esperienza?: string; ultimo_ruolo?: string;
-  competenze_tecniche?: string[]; certificazioni?: string[];
+  competenze_tecniche?: string[]; certificazioni?: Array<string | { nome?: string }>;
   campi_personalizzati?: Record<string, string>;
 }
 interface Valutazione {
@@ -66,7 +66,7 @@ export async function exportCandidatiCSV() {
       "Anni esperienza": e.anni_esperienza || "",
       "Ultimo ruolo": e.ultimo_ruolo || "",
       "Competenze tecniche": (e.competenze_tecniche || []).join("; "),
-      "Certificazioni": (e.certificazioni || []).join("; "),
+      "Certificazioni": (e.certificazioni || []).map((c) => typeof c === "string" ? c : (c?.nome ?? "")).filter(Boolean).join("; "),
       "Ruolo applicato": c.posizioni?.titolo || "",
       "Canale": c.canale || "",
       "Stato analisi": c.stato_analisi,
@@ -189,7 +189,7 @@ export async function exportAnalisiPDF(candidatoId: string) {
   kv("Anni esperienza", e.anni_esperienza || "");
   kv("Ultimo ruolo", e.ultimo_ruolo || "");
   kv("Competenze", (e.competenze_tecniche || []).join(", "));
-  kv("Certificazioni", (e.certificazioni || []).join(", "));
+  kv("Certificazioni", (e.certificazioni || []).map((c) => typeof c === "string" ? c : (c?.nome ?? "")).filter(Boolean).join(", "));
   if (e.campi_personalizzati) {
     for (const [k, v] of Object.entries(e.campi_personalizzati)) kv(k, v);
   }

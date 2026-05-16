@@ -74,7 +74,7 @@ interface Estratte {
   anni_esperienza?: string;
   ultimo_ruolo?: string;
   competenze_tecniche?: string[];
-  certificazioni?: string[];
+  certificazioni?: Array<string | { nome?: string }>;
   campi_personalizzati?: Record<string, string>;
 }
 interface Valutazione {
@@ -629,7 +629,7 @@ function CandidatoDrawer({
                 v={(e?.competenze_tecniche ?? []).join(", ")}
                 full
               />
-              <KV k="Certificazioni" v={(e?.certificazioni ?? []).join(", ")} full />
+              <KV k="Certificazioni" v={(e?.certificazioni ?? []).map((c) => typeof c === "string" ? c : (c?.nome ?? "")).filter(Boolean).join(", ")} full />
             </dl>
             {e?.campi_personalizzati && Object.keys(e.campi_personalizzati).length > 0 && (
               <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">

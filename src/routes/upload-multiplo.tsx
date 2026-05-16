@@ -279,8 +279,13 @@ function UploadMultiploPage() {
     setIsProcessing(true);
     // Snapshot per garantire ordine sequenziale
     const queue = [...files];
-    for (const row of queue) {
-      await processOne(row);
+    for (let i = 0; i < queue.length; i++) {
+      await processOne(queue[i]);
+      // Throttling: 2s di pausa tra un CV e il successivo per evitare
+      // rate limit OpenAI (429) in caricamenti batch.
+      if (i < queue.length - 1) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     }
     setIsProcessing(false);
   };

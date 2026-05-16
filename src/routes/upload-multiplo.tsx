@@ -163,7 +163,7 @@ function UploadMultiploPage() {
         .eq("id", existingId)
         .single();
       const mergedTags = mergeTags(esistente?.tags ?? [], nuovo?.tags ?? []);
-      const updatePayload: Record<string, unknown> = { tags: mergedTags };
+      const updatePayload: { tags: string[]; cv_path?: string } = { tags: mergedTags };
       if (!esistente?.cv_path && nuovo?.cv_path) {
         updatePayload.cv_path = nuovo.cv_path;
       }

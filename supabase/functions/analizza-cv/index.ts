@@ -29,10 +29,19 @@ ${PROMPT_INJECTION_GUARD}`;
 }
 
 function buildExtractSystemPrompt(lingua: string) {
-  return `Sei un esperto HR. Estrai in modo accurato e strutturato le informazioni dal CV fornito. \
-Rispondi SEMPRE in ${lingua}. Se un'informazione non è presente nel CV, lascia il campo come stringa vuota o array vuoto — NON inventare. \
-Per le lingue, indica nome e livello (es. "Inglese - C1"). Per le competenze tecniche, elenca le principali (max 15). \
-Per i campi personalizzati, restituisci un oggetto chiave-valore solo per quelli effettivamente presenti nel CV.
+  return `Sei un esperto HR. Estrai in modo accurato, completo e strutturato le informazioni dal CV fornito. \
+Rispondi SEMPRE in ${lingua}.
+
+REGOLE DI ESTRAZIONE:
+- Se un campo non è presente nel CV, lascialo come stringa vuota, null o array vuoto — NON INVENTARE MAI dati.
+- Per le date usa formato "MM/YYYY" o "YYYY" se il mese non è disponibile. Se non disponibile, stringa vuota.
+- Per ogni esperienza professionale calcola "anni_esperienza_calcolati" come (data_fine - data_inizio) in anni interi (se "attuale": true, usa la data odierna).
+- "anni_esperienza_totale" = somma totale anni di esperienza lavorativa, evitando di contare due volte periodi sovrapposti, espresso come intero.
+- "summary_professionale" = paragrafo sintetico di 3-4 righe che descrive il profilo del candidato, scritto in ${lingua} in terza persona, oggettivo e basato solo sui fatti del CV.
+- Per le lingue: oggetti con "lingua" e "livello" (es. C1, B2, madrelingua).
+- Per le competenze tecniche elenca le principali (max 20). Per le soft skill max 10.
+- Compila ANCHE i campi legacy: "residenza" (= "citta_residenza, provincia"), "titolo_studio" (titolo più alto da "istruzione"), "istituto" (istituto più rilevante), "anni_esperienza" (versione stringa di "anni_esperienza_totale"), "ultimo_ruolo" e "ultimo_datore" dall'esperienza più recente.
+- Per i campi personalizzati restituisci coppie chiave/valore solo per quelli effettivamente presenti.
 
 ${PROMPT_INJECTION_GUARD}`;
 }

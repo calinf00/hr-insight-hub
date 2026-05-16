@@ -369,10 +369,101 @@ Deno.serve(async (req) => {
     async function processOne(cid: string): Promise<{ analisi: any; informazioni_estratte: any }> {
       const { data: candidato, error: cErr } = await supabase
         .from("candidati")
-        .select("id, nome, cognome, cv_path, note")
+        .select("id, nome, cognome, cv_path, note, informazioni_estratte")
         .eq("id", cid)
         .single();
       if (cErr || !candidato) throw withStatus("Candidato non trovato", 404);
+
+      // === MODALITÀ RIANALISI: salta PDF, usa informazioni_estratte già salvate ===
+      if (isReanalysis) {
+        const info = (candidato as any).informazioni_estratte;
+        if (!info || typeof info !== "object" || Object.keys(info).length === 0) {
+          throw withStatus("RIANALISI: informazioni_estratte non disponibile per questo candidato", 400);
+        }
+
+        const posizioniText = posizioni!
+          .map(
+            (p, i) =>
+              `### Posizione ${i + 1}\n` +
+              `- ID: ${p.id}\n` +
+              `- Titolo: ${p.titolo}\n` +
+              (p.reparto ? `- Reparto: ${p.reparto}\n` : "") +
+              (p.luogo ? `- Luogo: ${p.luogo}\n` : "") +
+              (p.anni_esperienza ? `- Esperienza minima: ${p.anni_esperienza} anni\n` : "") +
+              `- Titolo di studio richiesto: ${p.titolo_studio}\n` +
+              (p.lingue ? `- Lingue: ${p.lingue}\n` : "") +
+              (p.competenze ? `- Competenze richieste: ${p.competenze}\n` : "") +
+              `- Descrizione:\n${p.descrizione}`,
+          )
+          .join("\n\n");
+
+        const matchUserMessage =
+          `Candidato: ${candidato.nome} ${candidato.cognome}\n` +
+          (candidato.note ? `Note HR: ${candidato.note}\n` : "") +
+          `\n## Dati strutturati estratti in precedenza dal CV (JSON)\n` +
+          `<<<CV_JSON_BEGIN>>>\n${JSON.stringify(info, null, 2)}\n<<<CV_JSON_END>>>\n\n` +
+          `## Posizioni da valutare\n${posizioniText}\n\n` +
+          `IMPORTANTE: nel campo "valutazioni" usa esattamente l'ID di ciascuna posizione fornito sopra.`;
+
+        let matchRes: Response;
+        try {
+          matchRes = await callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA);
+        } catch (aiErr: any) {
+          throw withStatus(`OPENAI: chiamata fallita: ${aiErr?.message ?? String(aiErr)}`, 502);
+        }
+        if (!matchRes.ok) {
+          const errText = await matchRes.text();
+          if (matchRes.status === 429) throw withStatus(`OPENAI HTTP 429 (rate limit): ${errText.slice(0, 800)}`, 429);
+          if (matchRes.status === 402) throw withStatus(`OPENAI HTTP 402 (crediti): ${errText.slice(0, 800)}`, 402);
+          throw withStatus(`OPENAI HTTP ${matchRes.status}: ${errText.slice(0, 800)}`, 400);
+        }
+        const matchJson = await matchRes.json();
+        const matchContent = matchJson.choices?.[0]?.message?.content;
+        if (!matchContent) throw withStatus("Risposta AI vuota", 500);
+        let risultato: any;
+        try {
+          risultato = typeof matchContent === "string" ? JSON.parse(matchContent) : matchContent;
+        } catch {
+          throw withStatus("Risposta AI non in formato JSON valido", 500);
+        }
+
+        const valutazioni: any[] = Array.isArray(risultato.valutazioni) ? risultato.valutazioni : [];
+        const validIds = new Set(posizioni!.map((p) => p.id));
+        valutazioni.forEach((v) => {
+          if (!validIds.has(v.posizione_id)) {
+            const match = posizioni!.find((p) => p.titolo === v.titolo);
+            if (match) v.posizione_id = match.id;
+          }
+        });
+        let bestPosId: string | null = risultato.posizione_migliore_id ?? null;
+        if (bestPosId && !validIds.has(bestPosId)) bestPosId = null;
+        let bestScore: number | null = null;
+        if (bestPosId) {
+          const found = valutazioni.find((v) => v.posizione_id === bestPosId);
+          bestScore = found?.punteggio ?? null;
+        } else if (valutazioni.length > 0) {
+          const sorted = [...valutazioni].sort((a, b) => (b.punteggio ?? 0) - (a.punteggio ?? 0));
+          bestPosId = sorted[0].posizione_id ?? null;
+          bestScore = sorted[0].punteggio ?? null;
+        }
+
+        const { data: saved, error: sErr } = await supabase
+          .from("analisi")
+          .insert({
+            candidato_id: cid,
+            posizioni_ids,
+            risultato,
+            best_posizione_id: bestPosId,
+            best_score: bestScore,
+            modello: modelName,
+          })
+          .select()
+          .single();
+        if (sErr) throw withStatus("Errore nel salvataggio dell'analisi", 500);
+
+        return { analisi: saved, informazioni_estratte: info };
+      }
+
       if (!candidato.cv_path) throw withStatus("Il candidato non ha un CV caricato", 400);
 
       // (c) Download PDF da Supabase Storage

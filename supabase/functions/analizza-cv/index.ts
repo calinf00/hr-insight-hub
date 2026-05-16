@@ -576,12 +576,12 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           console.warn("Extract parse error:", e);
-          extractErrorDetail = `parse error: ${(e as Error).message}`;
+          extractErrorDetail = "Risposta AI in formato non valido.";
         }
       } else {
         const errBody = await extractRes.text();
         console.warn("Extract AI error:", extractRes.status, errBody);
-        extractErrorDetail = `HTTP ${extractRes.status}: ${errBody.slice(0, 500)}`;
+        extractErrorDetail = "Estrazione AI non riuscita. Riprova più tardi.";
       }
 
       const valutazioni: any[] = Array.isArray(risultato.valutazioni) ? risultato.valutazioni : [];

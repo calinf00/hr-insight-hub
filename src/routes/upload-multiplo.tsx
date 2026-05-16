@@ -452,7 +452,7 @@ function UploadMultiploPage() {
                 </ul>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild>
-                    <Link to="/analisi">
+                    <Link to="/ranking">
                       Vai ai risultati
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>

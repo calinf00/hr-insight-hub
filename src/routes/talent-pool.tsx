@@ -19,6 +19,7 @@ import Papa from "papaparse";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { tagChipClass } from "@/lib/auto-tags";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

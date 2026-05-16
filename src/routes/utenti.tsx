@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/utenti")({
   beforeLoad: async () => {
+    // Run guard only in the browser — supabase auth state is not available during SSR.
+    if (typeof window === "undefined") return;
     const { redirect } = await import("@tanstack/react-router");
     const { data: sess } = await supabase.auth.getSession();
     const uid = sess.session?.user.id;

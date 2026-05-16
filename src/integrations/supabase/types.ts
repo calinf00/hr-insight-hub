@@ -127,6 +127,7 @@ export type Database = {
           informazioni_estratte: Json | null
           nome: string
           note: string | null
+          note_errore: string | null
           posizione_id: string | null
           stato_analisi: Database["public"]["Enums"]["stato_analisi"]
           tags: string[]
@@ -142,6 +143,7 @@ export type Database = {
           informazioni_estratte?: Json | null
           nome: string
           note?: string | null
+          note_errore?: string | null
           posizione_id?: string | null
           stato_analisi?: Database["public"]["Enums"]["stato_analisi"]
           tags?: string[]
@@ -157,6 +159,7 @@ export type Database = {
           informazioni_estratte?: Json | null
           nome?: string
           note?: string | null
+          note_errore?: string | null
           posizione_id?: string | null
           stato_analisi?: Database["public"]["Enums"]["stato_analisi"]
           tags?: string[]
@@ -273,7 +276,7 @@ export type Database = {
       app_role: "hr" | "admin"
       canale_provenienza: "linkedin" | "sito" | "referral" | "altro"
       posizione_stato: "aperta" | "chiusa"
-      stato_analisi: "in_attesa" | "analizzato"
+      stato_analisi: "in_attesa" | "analizzato" | "errore_estrazione"
       titolo_studio:
         | "nessuno"
         | "diploma"
@@ -410,7 +413,7 @@ export const Constants = {
       app_role: ["hr", "admin"],
       canale_provenienza: ["linkedin", "sito", "referral", "altro"],
       posizione_stato: ["aperta", "chiusa"],
-      stato_analisi: ["in_attesa", "analizzato"],
+      stato_analisi: ["in_attesa", "analizzato", "errore_estrazione"],
       titolo_studio: [
         "nessuno",
         "diploma",

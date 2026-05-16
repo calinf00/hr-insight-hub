@@ -525,6 +525,28 @@ function TalentPoolPage() {
     onError: (e) => handleDbError(e, "Errore associazione posizione"),
   });
 
+  // Rilancia l'analisi per un singolo candidato (es. dopo "errore_estrazione").
+  const retryMutation = useMutation({
+    mutationFn: async (candidatoId: string) => {
+      const cand = (candidati ?? []).find((c) => c.id === candidatoId);
+      // Posizione: usa quella già associata, altrimenti la prima aperta.
+      let posId = cand?.posizione_id ?? null;
+      if (!posId) posId = posizioniAperte[0]?.id ?? null;
+      if (!posId) throw new Error("Nessuna posizione aperta disponibile per la rianalisi.");
+      await supabase.from("candidati").update({ stato_analisi: "in_attesa", note_errore: null }).eq("id", candidatoId);
+      const { error } = await supabase.functions.invoke("analizza-cv", {
+        body: { candidato_id: candidatoId, posizioni_ids: [posId], extract_only: false },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Analisi rilanciata");
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "analisi"] });
+    },
+    onError: (e) => handleDbError(e, "Errore nel rilancio dell'analisi"),
+  });
+
   const openCandidato = useMemo(
     () => rows.find((r) => r.candidato.id === openCandidatoId) ?? null,
     [rows, openCandidatoId],
@@ -977,6 +999,26 @@ function TalentPoolPage() {
                         <Badge className="ml-2 bg-yellow-500/15 text-yellow-700 border border-yellow-500/30 dark:text-yellow-400">
                           ⚠ Dati incompleti
                         </Badge>
+                      )}
+                      {r.candidato.stato_analisi === "errore_estrazione" && (
+                        <span className="inline-flex items-center gap-2 ml-2 align-middle">
+                          <Badge className="bg-red-500/15 text-red-700 border border-red-500/30 dark:text-red-400">
+                            Estrazione fallita
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs"
+                            disabled={retryMutation.isPending}
+                            onClick={() => retryMutation.mutate(r.candidato.id)}
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Riprova
+                          </Button>
+                        </span>
+                      )}
+                      {r.candidato.note_errore && r.candidato.stato_analisi === "errore_estrazione" && (
+                        <div className="text-xs text-muted-foreground mt-1">{r.candidato.note_errore}</div>
                       )}
                     </TableCell>
                     {showCol("email") && (

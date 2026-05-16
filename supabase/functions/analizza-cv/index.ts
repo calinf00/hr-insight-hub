@@ -420,7 +420,8 @@ Deno.serve(async (req) => {
         try {
           matchRes = await callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA);
         } catch (aiErr: any) {
-          throw withStatus(`OPENAI: chiamata fallita: ${aiErr?.message ?? String(aiErr)}`, 502);
+          console.error("AI call threw (reanalysis):", aiErr);
+          throw withStatus("Servizio AI temporaneamente non disponibile. Riprova più tardi.", 502);
         }
         if (!matchRes.ok) {
           const errText = await matchRes.text();

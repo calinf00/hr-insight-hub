@@ -176,9 +176,14 @@ Deno.serve(async (req) => {
       return json({ error: "Accesso riservato agli utenti HR" }, 403);
     }
 
-    const { candidato_id, posizioni_ids } = await req.json();
-    if (!candidato_id || !Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
-      return json({ error: "candidato_id e posizioni_ids sono obbligatori" }, 400);
+    const body = await req.json();
+    const { candidato_id, extract_only } = body;
+    const posizioni_ids: string[] = Array.isArray(body.posizioni_ids) ? body.posizioni_ids : [];
+    if (!candidato_id) {
+      return json({ error: "candidato_id obbligatorio" }, 400);
+    }
+    if (!extract_only && posizioni_ids.length === 0) {
+      return json({ error: "posizioni_ids obbligatori" }, 400);
     }
 
     const { data: candidato, error: cErr } = await supabase

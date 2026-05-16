@@ -1000,6 +1000,26 @@ function TalentPoolPage() {
                           ⚠ Dati incompleti
                         </Badge>
                       )}
+                      {r.candidato.stato_analisi === "errore_estrazione" && (
+                        <span className="inline-flex items-center gap-2 ml-2 align-middle">
+                          <Badge className="bg-red-500/15 text-red-700 border border-red-500/30 dark:text-red-400">
+                            Estrazione fallita
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs"
+                            disabled={retryMutation.isPending}
+                            onClick={() => retryMutation.mutate(r.candidato.id)}
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Riprova
+                          </Button>
+                        </span>
+                      )}
+                      {r.candidato.note_errore && r.candidato.stato_analisi === "errore_estrazione" && (
+                        <div className="text-xs text-muted-foreground mt-1">{r.candidato.note_errore}</div>
+                      )}
                     </TableCell>
                     {showCol("email") && (
                       <TableCell className="text-sm">{r.estratte?.email ?? "—"}</TableCell>

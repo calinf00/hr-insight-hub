@@ -364,17 +364,24 @@ Deno.serve(async (req) => {
         `## Campi personalizzati richiesti dall'HR\n${customFieldsText}\n\n` +
         `Estrai le informazioni standard e popola "campi_personalizzati" SOLO con i campi sopra elencati che trovi effettivamente nel CV (chiave = etichetta esatta, valore = testo breve).`;
 
-      const [matchRes, extractRes] = await Promise.all([
-        callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
-        callAI(buildExtractSystemPrompt(lingua), extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),
-      ]);
+      let matchRes: Response;
+      let extractRes: Response;
+      try {
+        [matchRes, extractRes] = await Promise.all([
+          callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
+          callAI(buildExtractSystemPrompt(lingua), extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),
+        ]);
+      } catch (aiErr: any) {
+        console.error("AI fetch threw:", aiErr);
+        throw withStatus(`OPENAI: chiamata fallita: ${aiErr?.message ?? String(aiErr)}`, 502);
+      }
 
       if (!matchRes.ok) {
         const errText = await matchRes.text();
         console.error("AI match error:", matchRes.status, errText);
-        if (matchRes.status === 429) throw withStatus("Limite di richieste AI raggiunto. Riprova tra poco.", 429);
-        if (matchRes.status === 402) throw withStatus("Crediti AI esauriti. Aggiungi crediti al workspace.", 402);
-        throw withStatus("Errore dal servizio AI", 500);
+        if (matchRes.status === 429) throw withStatus(`OPENAI HTTP 429 (rate limit): ${errText.slice(0, 800)}`, 429);
+        if (matchRes.status === 402) throw withStatus(`OPENAI HTTP 402 (crediti): ${errText.slice(0, 800)}`, 402);
+        throw withStatus(`OPENAI HTTP ${matchRes.status}: ${errText.slice(0, 800)}`, 400);
       }
 
       const matchJson = await matchRes.json();

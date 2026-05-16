@@ -251,11 +251,13 @@ Deno.serve(async (req) => {
       candidati_ids,
       posizioni_ids,
       batch_mode,
+      reanalysis_mode,
       lingua: linguaOverride,
       soglia: sogliaOverride,
     } = body ?? {};
 
     const isBatch = batch_mode === true && Array.isArray(candidati_ids) && candidati_ids.length > 0;
+    const isReanalysis = reanalysis_mode === true;
 
     // (a) OPENAI_API_KEY obbligatoria nei secret
     if (!Deno.env.get("OPENAI_API_KEY")) {

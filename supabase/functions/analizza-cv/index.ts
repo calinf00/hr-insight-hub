@@ -116,12 +116,15 @@ function buildExtractSchema(customFields: Array<{ etichetta: string }>) {
       certificazioni: { type: "array", items: { type: "string" } },
       campi_personalizzati: {
         type: "object",
-        additionalProperties: { type: "string" },
+        additionalProperties: false,
+        properties: Object.fromEntries(
+          customFields.map((f) => [f.etichetta, { type: ["string", "null"] }]),
+        ),
+        required: customFields.map((f) => f.etichetta),
         description:
           customFields.length > 0
-            ? "Estrai questi campi se presenti nel CV: " +
-              customFields.map((f) => `"${f.etichetta}"`).join(", ")
-            : "Nessun campo personalizzato",
+            ? "Valorizza ciascun campo con il testo trovato nel CV, oppure null se assente."
+            : "Nessun campo personalizzato configurato.",
       },
     },
     required: [

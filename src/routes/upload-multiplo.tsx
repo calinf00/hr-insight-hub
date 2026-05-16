@@ -28,6 +28,9 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { handleDbError } from "@/lib/handle-error";
+import { generateAutoTags, mergeTags, tagChipClass } from "@/lib/auto-tags";
+import { findDuplicates, type CandidatoLite } from "@/lib/duplicate-check";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/upload-multiplo")({
   head: () => ({ meta: [{ title: "Upload multiplo CV — CV Analyzer" }] }),
@@ -50,6 +53,8 @@ type FileRow = {
   status: FileStatus;
   errore?: string;
   candidato_id?: string;
+  tags?: string[];
+  duplicato?: CandidatoLite | null;
 };
 
 const STATUS_LABEL: Record<FileStatus, string> = {

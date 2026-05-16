@@ -6,12 +6,14 @@ export interface Lingua {
   livello?: string;
 }
 
+export type CertificazioneItem = string | { nome?: string; ente?: string; anno?: string; scadenza?: string };
+
 export interface InformazioniEstratte {
   lingue?: Lingua[];
   titolo_studio?: string;
   anni_esperienza?: string;
   competenze_tecniche?: string[];
-  certificazioni?: string[];
+  certificazioni?: CertificazioneItem[];
   [k: string]: unknown;
 }
 

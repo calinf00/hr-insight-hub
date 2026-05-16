@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UtentiRouteImport } from './routes/utenti'
+import { Route as UploadMultiploRouteImport } from './routes/upload-multiplo'
 import { Route as PosizioniRouteImport } from './routes/posizioni'
 import { Route as ImpostazioniRouteImport } from './routes/impostazioni'
 import { Route as CandidatiRouteImport } from './routes/candidati'
@@ -20,6 +21,11 @@ import { Route as CandidatiIdRouteImport } from './routes/candidati.$id'
 const UtentiRoute = UtentiRouteImport.update({
   id: '/utenti',
   path: '/utenti',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UploadMultiploRoute = UploadMultiploRouteImport.update({
+  id: '/upload-multiplo',
+  path: '/upload-multiplo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PosizioniRoute = PosizioniRouteImport.update({
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/upload-multiplo': typeof UploadMultiploRoute
   '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/upload-multiplo': typeof UploadMultiploRoute
   '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/upload-multiplo': typeof UploadMultiploRoute
   '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/upload-multiplo'
     | '/utenti'
     | '/candidati/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/upload-multiplo'
     | '/utenti'
     | '/candidati/$id'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/upload-multiplo'
     | '/utenti'
     | '/candidati/$id'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   CandidatiRoute: typeof CandidatiRouteWithChildren
   ImpostazioniRoute: typeof ImpostazioniRoute
   PosizioniRoute: typeof PosizioniRoute
+  UploadMultiploRoute: typeof UploadMultiploRoute
   UtentiRoute: typeof UtentiRoute
 }
 
@@ -127,6 +140,13 @@ declare module '@tanstack/react-router' {
       path: '/utenti'
       fullPath: '/utenti'
       preLoaderRoute: typeof UtentiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upload-multiplo': {
+      id: '/upload-multiplo'
+      path: '/upload-multiplo'
+      fullPath: '/upload-multiplo'
+      preLoaderRoute: typeof UploadMultiploRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/posizioni': {
@@ -192,18 +212,9 @@ const rootRouteChildren: RootRouteChildren = {
   CandidatiRoute: CandidatiRouteWithChildren,
   ImpostazioniRoute: ImpostazioniRoute,
   PosizioniRoute: PosizioniRoute,
+  UploadMultiploRoute: UploadMultiploRoute,
   UtentiRoute: UtentiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

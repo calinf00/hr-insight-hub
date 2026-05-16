@@ -448,12 +448,50 @@ function UploadMultiploPage() {
 
             <ul className="divide-y rounded-md border">
               {files.map((f) => (
-                <li key={f.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate" title={f.file.name}>
-                    {f.file.name}
-                  </span>
-                  <StatusBadge row={f} />
+                <li key={f.id} className="px-3 py-2 text-sm">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate" title={f.file.name}>
+                      {f.file.name}
+                    </span>
+                    <StatusBadge row={f} />
+                  </div>
+                  {f.tags && f.tags.length > 0 && (
+                    <div className="mt-2 ml-7 flex flex-wrap gap-1">
+                      {f.tags.slice(0, 6).map((t) => (
+                        <Badge key={t} variant="outline" className={`text-xs ${tagChipClass(t)}`}>
+                          {t}
+                        </Badge>
+                      ))}
+                      {f.tags.length > 6 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{f.tags.length - 6}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  {f.duplicato && (
+                    <div className="mt-2 ml-7 rounded border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-amber-700 dark:text-amber-400">
+                            ⚠ Possibile duplicato: {f.duplicato.nome} {f.duplicato.cognome}
+                          </div>
+                          <div className="text-muted-foreground">
+                            Già presente dal{" "}
+                            {new Date(f.duplicato.created_at).toLocaleDateString("it-IT")}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void mergeWithExisting(f)}
+                        >
+                          Usa profilo esistente
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

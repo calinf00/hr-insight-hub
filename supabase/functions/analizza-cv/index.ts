@@ -538,7 +538,7 @@ Deno.serve(async (req) => {
         ]);
       } catch (aiErr: any) {
         console.error("AI fetch threw:", aiErr);
-        throw withStatus(`OPENAI: chiamata fallita: ${aiErr?.message ?? String(aiErr)}`, 502);
+        throw withStatus("Servizio AI temporaneamente non disponibile. Riprova più tardi.", 502);
       }
 
       if (!matchRes.ok) {

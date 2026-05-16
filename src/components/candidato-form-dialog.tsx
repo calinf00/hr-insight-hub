@@ -143,6 +143,7 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
     new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>

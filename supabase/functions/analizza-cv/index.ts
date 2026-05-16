@@ -94,35 +94,96 @@ const RESPONSE_SCHEMA = {
 } as const;
 
 function buildExtractSchema(customFields: Array<{ etichetta: string }>) {
-  return {
+  const istruzioneItem = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      titolo: { type: "string" },
+      istituto: { type: "string" },
+      anno_inizio: { type: "string" },
+      anno_fine: { type: "string" },
+      voto: { type: "string" },
+      note: { type: "string" },
+    },
+    required: ["titolo", "istituto", "anno_inizio", "anno_fine", "voto", "note"],
+  } as const;
+
+  const esperienzaItem = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      ruolo: { type: "string" },
+      azienda: { type: "string" },
+      settore: { type: "string" },
+      data_inizio: { type: "string" },
+      data_fine: { type: "string" },
+      attuale: { type: "boolean" },
+      descrizione: { type: "string" },
+      anni_esperienza_calcolati: { type: ["integer", "null"] },
+    },
+    required: [
+      "ruolo", "azienda", "settore", "data_inizio", "data_fine",
+      "attuale", "descrizione", "anni_esperienza_calcolati",
+    ],
+  } as const;
+
+  const certificazioneItem = {
     type: "object",
     additionalProperties: false,
     properties: {
       nome: { type: "string" },
+      ente: { type: "string" },
+      anno: { type: "string" },
+      scadenza: { type: "string" },
+    },
+    required: ["nome", "ente", "anno", "scadenza"],
+  } as const;
+
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      // Anagrafica
+      nome: { type: "string" },
       cognome: { type: "string" },
-      eta: { type: "string", description: "Età o data di nascita" },
-      residenza: { type: "string" },
-      nazionalita: { type: "string" },
       email: { type: "string" },
       telefono: { type: "string" },
+      data_nascita: { type: "string" },
+      eta: { type: ["integer", "null"] },
+      citta_residenza: { type: "string" },
+      provincia: { type: "string" },
+      nazionalita: { type: "string" },
+      patente: { type: "string" },
+      // Legacy (compatibilità con UI/export esistenti)
+      residenza: { type: "string" },
+      titolo_studio: { type: "string" },
+      istituto: { type: "string" },
+      anni_esperienza: { type: "string" },
+      ultimo_ruolo: { type: "string" },
+      ultimo_datore: { type: "string" },
+      // Strutturati
       lingue: {
         type: "array",
         items: {
           type: "object",
           additionalProperties: false,
-          properties: {
-            lingua: { type: "string" },
-            livello: { type: "string" },
-          },
+          properties: { lingua: { type: "string" }, livello: { type: "string" } },
           required: ["lingua", "livello"],
         },
       },
-      titolo_studio: { type: "string", description: "Titolo di studio più alto conseguito" },
-      istituto: { type: "string", description: "Università o istituto di studio principale" },
-      anni_esperienza: { type: "string", description: "Anni totali di esperienza lavorativa" },
-      ultimo_ruolo: { type: "string" },
+      istruzione: { type: "array", items: istruzioneItem },
+      esperienze_professionali: { type: "array", items: esperienzaItem },
+      certificazioni: { type: "array", items: certificazioneItem },
       competenze_tecniche: { type: "array", items: { type: "string" } },
-      certificazioni: { type: "array", items: { type: "string" } },
+      competenze_soft: { type: "array", items: { type: "string" } },
+      // Sintesi e preferenze
+      anni_esperienza_totale: { type: ["integer", "null"] },
+      disponibile_trasferte: { type: ["boolean", "null"] },
+      disponibile_relocation: { type: ["boolean", "null"] },
+      stipendio_atteso: { type: "string" },
+      notice_period: { type: "string" },
+      summary_professionale: { type: "string" },
+      // Campi personalizzati HR
       campi_personalizzati: {
         type: "array",
         description:
@@ -133,29 +194,20 @@ function buildExtractSchema(customFields: Array<{ etichetta: string }>) {
         items: {
           type: "object",
           additionalProperties: false,
-          properties: {
-            chiave: { type: "string" },
-            valore: { type: "string" },
-          },
+          properties: { chiave: { type: "string" }, valore: { type: "string" } },
           required: ["chiave", "valore"],
         },
       },
     },
     required: [
-      "nome",
-      "cognome",
-      "eta",
-      "residenza",
-      "nazionalita",
-      "email",
-      "telefono",
-      "lingue",
-      "titolo_studio",
-      "istituto",
-      "anni_esperienza",
-      "ultimo_ruolo",
-      "competenze_tecniche",
-      "certificazioni",
+      "nome", "cognome", "email", "telefono", "data_nascita", "eta",
+      "citta_residenza", "provincia", "nazionalita", "patente",
+      "residenza", "titolo_studio", "istituto", "anni_esperienza",
+      "ultimo_ruolo", "ultimo_datore",
+      "lingue", "istruzione", "esperienze_professionali", "certificazioni",
+      "competenze_tecniche", "competenze_soft",
+      "anni_esperienza_totale", "disponibile_trasferte", "disponibile_relocation",
+      "stipendio_atteso", "notice_period", "summary_professionale",
       "campi_personalizzati",
     ],
   };

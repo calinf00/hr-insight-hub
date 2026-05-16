@@ -152,7 +152,7 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="grid gap-4 py-2">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-2">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="nome">Nome *</Label>
@@ -234,5 +234,62 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog
+      open={duplicates.length > 0}
+      onOpenChange={(o) => {
+        if (!o) {
+          setDuplicates([]);
+          setPendingValues(null);
+        }
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Possibile duplicato rilevato</AlertDialogTitle>
+          <AlertDialogDescription>
+            È già presente un candidato con nome simile. Verifica prima di creare un nuovo profilo.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <ul className="space-y-2 max-h-56 overflow-y-auto rounded border p-2 text-sm">
+          {duplicates.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-2">
+              <div>
+                <div className="font-medium">{d.nome} {d.cognome}</div>
+                <div className="text-xs text-muted-foreground">
+                  Caricato il {fmtDate(d.created_at)}
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                {(d.informazioni_estratte as { email?: string } | null)?.email ?? ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <AlertDialogFooter>
+          <AlertDialogCancel
+            onClick={() => {
+              // "Usa profilo esistente": chiudi senza creare duplicato
+              toast.info("Usa il profilo esistente dalla lista candidati.");
+              setDuplicates([]);
+              setPendingValues(null);
+              onOpenChange(false);
+            }}
+          >
+            Usa profilo esistente
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (pendingValues) mutation.mutate(pendingValues);
+              setDuplicates([]);
+              setPendingValues(null);
+            }}
+          >
+            Crea comunque nuovo profilo
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

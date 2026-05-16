@@ -738,6 +738,41 @@ function EsportazioneSection() {
   );
 }
 
+/* ============== INFORMAZIONI APP ============== */
+function InfoAppSection() {
+  return (
+    <section className="rounded-lg border border-border bg-card p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Info className="h-4 w-4 text-primary" />
+        <h2 className="text-lg font-semibold">Informazioni applicazione</h2>
+      </div>
+      <div className="space-y-3 text-sm">
+        <div className="flex justify-between border-b border-border pb-2">
+          <span className="text-muted-foreground">Nome</span>
+          <span className="font-medium">CV Analyzer</span>
+        </div>
+        <div className="flex justify-between border-b border-border pb-2">
+          <span className="text-muted-foreground">Versione</span>
+          <span className="font-medium">1.0.0</span>
+        </div>
+        <div className="flex justify-between border-b border-border pb-2">
+          <span className="text-muted-foreground">Autore</span>
+          <span className="font-medium">Calin Fodor</span>
+        </div>
+        <div className="space-y-1">
+          <span className="text-muted-foreground">Descrizione</span>
+          <p className="text-foreground">
+            Strumento per la gestione e l'analisi intelligente dei CV, sviluppato per ottimizzare i processi di selezione HR.
+          </p>
+        </div>
+        <div className="rounded-md border border-border bg-background p-3 text-xs text-muted-foreground">
+          Nota legale: I dati personali dei candidati sono trattati esclusivamente per finalità di selezione del personale, in conformità al GDPR (Reg. UE 2016/679) e al D.Lgs. 196/2003.
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ============== HOOK ============== */
 function useSettings() {
   return useQuery({

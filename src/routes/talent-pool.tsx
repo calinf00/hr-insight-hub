@@ -342,7 +342,7 @@ function TalentPoolPage() {
         candidato: c,
         estratte,
         stato: statiMap[c.id] ?? "attivo",
-        tags: tagsMap[c.id] ?? [],
+        tags: (c.tags ?? []).length > 0 ? (c.tags as string[]) : (tagsMap[c.id] ?? []),
         bestScore,
         bestAnalisi,
         allAnalisi: all,

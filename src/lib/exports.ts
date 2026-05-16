@@ -12,7 +12,7 @@ interface Estratte {
   nazionalita?: string; email?: string; telefono?: string;
   lingue?: Lingua[]; titolo_studio?: string; istituto?: string;
   anni_esperienza?: string; ultimo_ruolo?: string;
-  competenze_tecniche?: string[]; certificazioni?: string[];
+  competenze_tecniche?: string[]; certificazioni?: Array<string | { nome?: string }>;
   campi_personalizzati?: Record<string, string>;
 }
 interface Valutazione {

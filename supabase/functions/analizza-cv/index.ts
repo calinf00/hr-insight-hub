@@ -115,13 +115,21 @@ function buildExtractSchema(customFields: Array<{ etichetta: string }>) {
       competenze_tecniche: { type: "array", items: { type: "string" } },
       certificazioni: { type: "array", items: { type: "string" } },
       campi_personalizzati: {
-        type: "object",
-        additionalProperties: { type: "string" },
+        type: "array",
         description:
           customFields.length > 0
-            ? "Estrai questi campi se presenti nel CV: " +
+            ? "Coppie chiave/valore SOLO per questi campi se presenti nel CV: " +
               customFields.map((f) => `"${f.etichetta}"`).join(", ")
-            : "Nessun campo personalizzato",
+            : "Lascia array vuoto: nessun campo personalizzato configurato.",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            chiave: { type: "string" },
+            valore: { type: "string" },
+          },
+          required: ["chiave", "valore"],
+        },
       },
     },
     required: [

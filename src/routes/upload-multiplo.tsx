@@ -148,8 +148,18 @@ function UploadMultiploPage() {
     const newId = row.candidato_id;
     const existingId = row.duplicato.id;
     try {
-      // Riassegna le analisi appena create al candidato esistente
-      await supabase.from("analisi").update({ candidato_id: existingId }).eq("candidato_id", newId);
+      // Clona le analisi appena create assegnandole al candidato esistente,
+      // poi rimuove quelle del nuovo (la tabella analisi non consente UPDATE).
+      const { data: nuoveAnalisi } = await supabase
+        .from("analisi")
+        .select("posizioni_ids, risultato, best_posizione_id, best_score, modello")
+        .eq("candidato_id", newId);
+      if (nuoveAnalisi && nuoveAnalisi.length > 0) {
+        await supabase.from("analisi").insert(
+          nuoveAnalisi.map((a) => ({ ...a, candidato_id: existingId })),
+        );
+        await supabase.from("analisi").delete().eq("candidato_id", newId);
+      }
       // Recupera il record nuovo per pulire lo storage
       const { data: nuovo } = await supabase
         .from("candidati")

@@ -30,7 +30,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { handleDbError } from "@/lib/handle-error";
 import { generateAutoTags, mergeTags, tagChipClass } from "@/lib/auto-tags";
 import { findDuplicates, type CandidatoLite } from "@/lib/duplicate-check";
-import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/upload-multiplo")({
   head: () => ({ meta: [{ title: "Upload multiplo CV — CV Analyzer" }] }),

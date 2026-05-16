@@ -1183,7 +1183,7 @@ function TalentPoolPage() {
                         if (e.key === "Enter" && tagInput.trim()) {
                           const t = tagInput.trim();
                           if (!openCandidato.tags.includes(t)) {
-                            updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
+                            void updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
                           }
                           setTagInput("");
                         }
@@ -1196,7 +1196,7 @@ function TalentPoolPage() {
                         const t = tagInput.trim();
                         if (!t) return;
                         if (!openCandidato.tags.includes(t)) {
-                          updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
+                          void updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
                         }
                         setTagInput("");
                       }}

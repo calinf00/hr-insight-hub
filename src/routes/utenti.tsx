@@ -8,6 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/utenti")({
+  beforeLoad: async () => {
+    const { redirect } = await import("@tanstack/react-router");
+    const { data: sess } = await supabase.auth.getSession();
+    const uid = sess.session?.user.id;
+    if (!uid) throw redirect({ to: "/" });
+    const { data: adminCheck } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", uid)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!adminCheck) throw redirect({ to: "/" });
+  },
   component: UtentiPage,
 });
 

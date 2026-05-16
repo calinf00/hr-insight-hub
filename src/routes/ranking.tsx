@@ -74,7 +74,7 @@ interface Estratte {
   anni_esperienza?: string;
   ultimo_ruolo?: string;
   competenze_tecniche?: string[];
-  certificazioni?: string[];
+  certificazioni?: Array<string | { nome?: string }>;
   campi_personalizzati?: Record<string, string>;
 }
 interface Valutazione {

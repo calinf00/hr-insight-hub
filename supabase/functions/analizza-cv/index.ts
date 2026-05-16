@@ -440,9 +440,8 @@ Deno.serve(async (req) => {
       } else {
         // Dopo i retry l'estrazione è fallita: marca il candidato con stato dedicato.
         update.stato_analisi = "errore_estrazione";
-        update.note_errore = extractRes.ok
-          ? "L'AI non ha restituito informazioni utili dal CV."
-          : `Estrazione AI fallita (HTTP ${extractRes.status}).`;
+        update.note_errore =
+          extractErrorDetail ?? "L'AI non ha restituito informazioni utili dal CV.";
       }
 
       // Sovrascrive SEMPRE nome/cognome con i dati estratti dall'AI per

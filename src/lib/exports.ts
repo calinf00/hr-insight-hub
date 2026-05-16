@@ -189,7 +189,7 @@ export async function exportAnalisiPDF(candidatoId: string) {
   kv("Anni esperienza", e.anni_esperienza || "");
   kv("Ultimo ruolo", e.ultimo_ruolo || "");
   kv("Competenze", (e.competenze_tecniche || []).join(", "));
-  kv("Certificazioni", (e.certificazioni || []).join(", "));
+  kv("Certificazioni", (e.certificazioni || []).map((c) => typeof c === "string" ? c : (c?.nome ?? "")).filter(Boolean).join(", "));
   if (e.campi_personalizzati) {
     for (const [k, v] of Object.entries(e.campi_personalizzati)) kv(k, v);
   }

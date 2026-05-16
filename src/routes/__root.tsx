@@ -108,6 +108,11 @@ function RootComponent() {
               <main className="flex-1 p-6">
                 <Outlet />
               </main>
+              <footer className="border-t py-4 text-center text-xs text-muted-foreground">
+                <p>© {new Date().getFullYear()} Calin Fodor — Tutti i diritti riservati</p>
+                <p className="mt-0.5">CV Analyzer · Ideato e sviluppato da Calin Fodor</p>
+                <p className="mt-0.5">Uso interno riservato — I dati dei candidati sono trattati in conformità al Regolamento UE 2016/679 (GDPR)</p>
+              </footer>
             </div>
           </div>
         </SidebarProvider>

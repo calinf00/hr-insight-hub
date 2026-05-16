@@ -195,7 +195,25 @@ function UploadMultiploPage() {
       if (fnErr) throw fnErr;
       if (fnData?.error) throw new Error(fnData.error);
 
-      updateRow(row.id, { status: "completato" });
+      // 4. Genera tag automatici e rilevazione duplicati post-estrazione
+      const estratte = fnData?.informazioni_estratte ?? null;
+      const autoTags = generateAutoTags(estratte);
+      if (autoTags.length > 0) {
+        await supabase
+          .from("candidati")
+          .update({ tags: autoTags })
+          .eq("id", cand.id);
+      }
+
+      let duplicato: CandidatoLite | null = null;
+      const email = estratte?.email as string | undefined;
+      const telefono = estratte?.telefono as string | undefined;
+      if (email || telefono) {
+        const dups = await findDuplicates({ email, telefono, excludeId: cand.id });
+        if (dups.length > 0) duplicato = dups[0];
+      }
+
+      updateRow(row.id, { status: "completato", tags: autoTags, duplicato });
     } catch (e: any) {
       // Cleanup best-effort se siamo riusciti a caricare ma non a creare il candidato
       if (cv_path && !candidato_id) {

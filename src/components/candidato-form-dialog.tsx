@@ -121,10 +121,26 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["candidati"] });
       toast.success("Candidato aggiunto");
+      setPendingValues(null);
+      setDuplicates([]);
       onOpenChange(false);
     },
     onError: (e: Error) => handleDbError(e, "mutation"),
   });
+
+  // Controlla duplicati per nome+cognome prima di inserire.
+  const onSubmit = async (values: FormValues) => {
+    const dups = await findDuplicates({ nome: values.nome, cognome: values.cognome });
+    if (dups.length > 0) {
+      setPendingValues(values);
+      setDuplicates(dups);
+      return;
+    }
+    mutation.mutate(values);
+  };
+
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

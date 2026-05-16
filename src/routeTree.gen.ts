@@ -16,6 +16,7 @@ import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PosizioniRouteImport } from './routes/posizioni'
 import { Route as ImpostazioniRouteImport } from './routes/impostazioni'
 import { Route as CandidatiRouteImport } from './routes/candidati'
+import { Route as AnalisiPeriodoRouteImport } from './routes/analisi-periodo'
 import { Route as AnalisiRouteImport } from './routes/analisi'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CandidatiIdRouteImport } from './routes/candidati.$id'
@@ -55,6 +56,11 @@ const CandidatiRoute = CandidatiRouteImport.update({
   path: '/candidati',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalisiPeriodoRoute = AnalisiPeriodoRouteImport.update({
+  id: '/analisi-periodo',
+  path: '/analisi-periodo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalisiRoute = AnalisiRouteImport.update({
   id: '/analisi',
   path: '/analisi',
@@ -74,6 +80,7 @@ const CandidatiIdRoute = CandidatiIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analisi': typeof AnalisiRoute
+  '/analisi-periodo': typeof AnalisiPeriodoRoute
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analisi': typeof AnalisiRoute
+  '/analisi-periodo': typeof AnalisiPeriodoRoute
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analisi': typeof AnalisiRoute
+  '/analisi-periodo': typeof AnalisiPeriodoRoute
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analisi'
+    | '/analisi-periodo'
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analisi'
+    | '/analisi-periodo'
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analisi'
+    | '/analisi-periodo'
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalisiRoute: typeof AnalisiRoute
+  AnalisiPeriodoRoute: typeof AnalisiPeriodoRoute
   CandidatiRoute: typeof CandidatiRouteWithChildren
   ImpostazioniRoute: typeof ImpostazioniRoute
   PosizioniRoute: typeof PosizioniRoute
@@ -210,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CandidatiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analisi-periodo': {
+      id: '/analisi-periodo'
+      path: '/analisi-periodo'
+      fullPath: '/analisi-periodo'
+      preLoaderRoute: typeof AnalisiPeriodoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analisi': {
       id: '/analisi'
       path: '/analisi'
@@ -249,6 +269,7 @@ const CandidatiRouteWithChildren = CandidatiRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalisiRoute: AnalisiRoute,
+  AnalisiPeriodoRoute: AnalisiPeriodoRoute,
   CandidatiRoute: CandidatiRouteWithChildren,
   ImpostazioniRoute: ImpostazioniRoute,
   PosizioniRoute: PosizioniRoute,

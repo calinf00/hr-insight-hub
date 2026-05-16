@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { handleDbError } from "@/lib/handle-error";
+import { generateAutoTags, mergeTags, tagChipClass } from "@/lib/auto-tags";
+import { findDuplicates, type CandidatoLite } from "@/lib/duplicate-check";
 
 export const Route = createFileRoute("/upload-multiplo")({
   head: () => ({ meta: [{ title: "Upload multiplo CV — CV Analyzer" }] }),
@@ -50,6 +52,8 @@ type FileRow = {
   status: FileStatus;
   errore?: string;
   candidato_id?: string;
+  tags?: string[];
+  duplicato?: CandidatoLite | null;
 };
 
 const STATUS_LABEL: Record<FileStatus, string> = {
@@ -139,6 +143,53 @@ function UploadMultiploPage() {
 
   const canStart = files.length > 0 && !!posizioneId && !isProcessing;
 
+  const mergeWithExisting = async (row: FileRow) => {
+    if (!row.candidato_id || !row.duplicato) return;
+    const newId = row.candidato_id;
+    const existingId = row.duplicato.id;
+    try {
+      // Clona le analisi appena create assegnandole al candidato esistente,
+      // poi rimuove quelle del nuovo (la tabella analisi non consente UPDATE).
+      const { data: nuoveAnalisi } = await supabase
+        .from("analisi")
+        .select("posizioni_ids, risultato, best_posizione_id, best_score, modello")
+        .eq("candidato_id", newId);
+      if (nuoveAnalisi && nuoveAnalisi.length > 0) {
+        await supabase.from("analisi").insert(
+          nuoveAnalisi.map((a) => ({ ...a, candidato_id: existingId })),
+        );
+        await supabase.from("analisi").delete().eq("candidato_id", newId);
+      }
+      // Recupera il record nuovo per pulire lo storage
+      const { data: nuovo } = await supabase
+        .from("candidati")
+        .select("cv_path, tags, informazioni_estratte")
+        .eq("id", newId)
+        .single();
+      // Aggiorna esistente con tag (merge) e CV se mancante
+      const { data: esistente } = await supabase
+        .from("candidati")
+        .select("tags, cv_path")
+        .eq("id", existingId)
+        .single();
+      const mergedTags = mergeTags(esistente?.tags ?? [], nuovo?.tags ?? []);
+      const updatePayload: { tags: string[]; cv_path?: string } = { tags: mergedTags };
+      if (!esistente?.cv_path && nuovo?.cv_path) {
+        updatePayload.cv_path = nuovo.cv_path;
+      }
+      await supabase.from("candidati").update(updatePayload).eq("id", existingId);
+      // Elimina record duplicato (e lo storage solo se non è stato spostato sull'esistente)
+      await supabase.from("candidati").delete().eq("id", newId);
+      if (nuovo?.cv_path && updatePayload.cv_path !== nuovo.cv_path) {
+        await supabase.storage.from("cvs").remove([nuovo.cv_path]).catch(() => {});
+      }
+      updateRow(row.id, { duplicato: null, candidato_id: existingId });
+      toast.success("Profilo unito con quello esistente");
+    } catch (e) {
+      handleDbError(e, "Errore unione duplicato");
+    }
+  };
+
   const processOne = async (row: FileRow) => {
     const f = row.file;
     let cv_path: string | null = null;
@@ -191,7 +242,25 @@ function UploadMultiploPage() {
       if (fnErr) throw fnErr;
       if (fnData?.error) throw new Error(fnData.error);
 
-      updateRow(row.id, { status: "completato" });
+      // 4. Genera tag automatici e rilevazione duplicati post-estrazione
+      const estratte = fnData?.informazioni_estratte ?? null;
+      const autoTags = generateAutoTags(estratte);
+      if (autoTags.length > 0) {
+        await supabase
+          .from("candidati")
+          .update({ tags: autoTags })
+          .eq("id", cand.id);
+      }
+
+      let duplicato: CandidatoLite | null = null;
+      const email = estratte?.email as string | undefined;
+      const telefono = estratte?.telefono as string | undefined;
+      if (email || telefono) {
+        const dups = await findDuplicates({ email, telefono, excludeId: cand.id });
+        if (dups.length > 0) duplicato = dups[0];
+      }
+
+      updateRow(row.id, { status: "completato", tags: autoTags, duplicato });
     } catch (e: any) {
       // Cleanup best-effort se siamo riusciti a caricare ma non a creare il candidato
       if (cv_path && !candidato_id) {
@@ -426,12 +495,50 @@ function UploadMultiploPage() {
 
             <ul className="divide-y rounded-md border">
               {files.map((f) => (
-                <li key={f.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate" title={f.file.name}>
-                    {f.file.name}
-                  </span>
-                  <StatusBadge row={f} />
+                <li key={f.id} className="px-3 py-2 text-sm">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate" title={f.file.name}>
+                      {f.file.name}
+                    </span>
+                    <StatusBadge row={f} />
+                  </div>
+                  {f.tags && f.tags.length > 0 && (
+                    <div className="mt-2 ml-7 flex flex-wrap gap-1">
+                      {f.tags.slice(0, 6).map((t) => (
+                        <Badge key={t} variant="outline" className={`text-xs ${tagChipClass(t)}`}>
+                          {t}
+                        </Badge>
+                      ))}
+                      {f.tags.length > 6 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{f.tags.length - 6}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  {f.duplicato && (
+                    <div className="mt-2 ml-7 rounded border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-amber-700 dark:text-amber-400">
+                            ⚠ Possibile duplicato: {f.duplicato.nome} {f.duplicato.cognome}
+                          </div>
+                          <div className="text-muted-foreground">
+                            Già presente dal{" "}
+                            {new Date(f.duplicato.created_at).toLocaleDateString("it-IT")}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void mergeWithExisting(f)}
+                        >
+                          Usa profilo esistente
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

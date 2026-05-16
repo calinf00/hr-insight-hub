@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { tagChipClass } from "@/lib/auto-tags";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -448,6 +449,22 @@ function CandidatoDetailPage() {
         analisi={analisiList || []}
         posMap={analisiPosizioni || new Map<string, string>()}
       />
+
+      {data.tags && data.tags.length > 0 && (
+        <section className="rounded-lg border border-border bg-card p-6">
+          <h2 className="mb-3 text-sm font-semibold">Tag</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {data.tags.map((t: string) => (
+              <Badge key={t} variant="outline" className={tagChipClass(t)}>
+                {t}
+              </Badge>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Modifica i tag dal Talent Pool.
+          </p>
+        </section>
+      )}
 
       {data.note && (
         <section className="rounded-lg border border-border bg-card p-6">

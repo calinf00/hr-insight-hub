@@ -19,6 +19,7 @@ import Papa from "papaparse";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { tagChipClass } from "@/lib/auto-tags";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -342,7 +343,7 @@ function TalentPoolPage() {
         candidato: c,
         estratte,
         stato: statiMap[c.id] ?? "attivo",
-        tags: tagsMap[c.id] ?? [],
+        tags: (c.tags ?? []).length > 0 ? (c.tags as string[]) : (tagsMap[c.id] ?? []),
         bestScore,
         bestAnalisi,
         allAnalisi: all,
@@ -480,12 +481,19 @@ function TalentPoolPage() {
     toast.success(`Stato aggiornato: ${STATO_BADGE[s].label}`);
   };
 
-  const updateTags = (cid: string, tags: string[]) => {
+  const updateTags = async (cid: string, tags: string[]) => {
+    // Persistenza primaria su DB; fallback su localStorage in caso di errore RLS
     setTagsMap((prev) => {
       const next = { ...prev, [cid]: tags };
       saveMap(TAGS_KEY, next);
       return next;
     });
+    const { error } = await supabase.from("candidati").update({ tags }).eq("id", cid);
+    if (error) {
+      toast.error("Tag salvati solo localmente");
+    } else {
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+    }
   };
 
   const noteMutation = useMutation({
@@ -1006,7 +1014,7 @@ function TalentPoolPage() {
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {r.tags.map((t) => (
-                            <Badge key={t} variant="outline" className="text-xs">
+                            <Badge key={t} variant="outline" className={`text-xs ${tagChipClass(t)}`}>
                               {t}
                             </Badge>
                           ))}
@@ -1150,12 +1158,12 @@ function TalentPoolPage() {
                   <Label className="text-xs">Tag</Label>
                   <div className="flex flex-wrap gap-1">
                     {openCandidato.tags.map((t) => (
-                      <Badge key={t} variant="secondary" className="text-xs">
+                      <Badge key={t} variant="outline" className={`text-xs ${tagChipClass(t)}`}>
                         {t}
                         <button
                           className="ml-1 hover:text-destructive"
                           onClick={() =>
-                            updateTags(
+                            void updateTags(
                               openCandidato.candidato.id,
                               openCandidato.tags.filter((x) => x !== t),
                             )
@@ -1175,7 +1183,7 @@ function TalentPoolPage() {
                         if (e.key === "Enter" && tagInput.trim()) {
                           const t = tagInput.trim();
                           if (!openCandidato.tags.includes(t)) {
-                            updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
+                            void updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
                           }
                           setTagInput("");
                         }
@@ -1188,7 +1196,7 @@ function TalentPoolPage() {
                         const t = tagInput.trim();
                         if (!t) return;
                         if (!openCandidato.tags.includes(t)) {
-                          updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
+                          void updateTags(openCandidato.candidato.id, [...openCandidato.tags, t]);
                         }
                         setTagInput("");
                       }}

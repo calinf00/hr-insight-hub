@@ -12,12 +12,17 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { findDuplicates, type CandidatoLite } from "@/lib/duplicate-check";
 
 const canali = [
   { value: "linkedin", label: "LinkedIn" },
@@ -47,6 +52,8 @@ interface Props {
 export function CandidatoFormDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
+  const [duplicates, setDuplicates] = useState<CandidatoLite[]>([]);
+  const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -114,12 +121,29 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["candidati"] });
       toast.success("Candidato aggiunto");
+      setPendingValues(null);
+      setDuplicates([]);
       onOpenChange(false);
     },
     onError: (e: Error) => handleDbError(e, "mutation"),
   });
 
+  // Controlla duplicati per nome+cognome prima di inserire.
+  const onSubmit = async (values: FormValues) => {
+    const dups = await findDuplicates({ nome: values.nome, cognome: values.cognome });
+    if (dups.length > 0) {
+      setPendingValues(values);
+      setDuplicates(dups);
+      return;
+    }
+    mutation.mutate(values);
+  };
+
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -129,7 +153,7 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="grid gap-4 py-2">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-2">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="nome">Nome *</Label>
@@ -211,5 +235,62 @@ export function CandidatoFormDialog({ open, onOpenChange }: Props) {
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog
+      open={duplicates.length > 0}
+      onOpenChange={(o) => {
+        if (!o) {
+          setDuplicates([]);
+          setPendingValues(null);
+        }
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Possibile duplicato rilevato</AlertDialogTitle>
+          <AlertDialogDescription>
+            È già presente un candidato con nome simile. Verifica prima di creare un nuovo profilo.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <ul className="space-y-2 max-h-56 overflow-y-auto rounded border p-2 text-sm">
+          {duplicates.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-2">
+              <div>
+                <div className="font-medium">{d.nome} {d.cognome}</div>
+                <div className="text-xs text-muted-foreground">
+                  Caricato il {fmtDate(d.created_at)}
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                {(d.informazioni_estratte as { email?: string } | null)?.email ?? ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <AlertDialogFooter>
+          <AlertDialogCancel
+            onClick={() => {
+              // "Usa profilo esistente": chiudi senza creare duplicato
+              toast.info("Usa il profilo esistente dalla lista candidati.");
+              setDuplicates([]);
+              setPendingValues(null);
+              onOpenChange(false);
+            }}
+          >
+            Usa profilo esistente
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (pendingValues) mutation.mutate(pendingValues);
+              setDuplicates([]);
+              setPendingValues(null);
+            }}
+          >
+            Crea comunque nuovo profilo
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

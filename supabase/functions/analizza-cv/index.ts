@@ -196,13 +196,22 @@ Deno.serve(async (req) => {
 
     const isBatch = batch_mode === true && Array.isArray(candidati_ids) && candidati_ids.length > 0;
 
+    // (a) OPENAI_API_KEY obbligatoria nei secret
+    if (!Deno.env.get("OPENAI_API_KEY")) {
+      return json({ error: "CONFIGURAZIONE: OPENAI_API_KEY mancante nei secret Supabase" }, 400);
+    }
+
+    // (b) candidato_id obbligatorio in modalità singola
     if (!isBatch) {
-      if (!candidato_id || !Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
-        return json({ error: "candidato_id e posizioni_ids sono obbligatori" }, 400);
+      if (!candidato_id || typeof candidato_id !== "string" || candidato_id.trim() === "") {
+        return json({ error: "RICHIESTA: candidato_id mancante" }, 400);
+      }
+      if (!Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
+        return json({ error: "RICHIESTA: posizioni_ids mancante o vuoto" }, 400);
       }
     } else {
       if (!Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
-        return json({ error: "posizioni_ids è obbligatorio" }, 400);
+        return json({ error: "RICHIESTA: posizioni_ids mancante o vuoto" }, 400);
       }
     }
 

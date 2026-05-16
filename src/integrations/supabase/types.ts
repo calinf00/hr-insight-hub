@@ -129,6 +129,7 @@ export type Database = {
           note: string | null
           posizione_id: string | null
           stato_analisi: Database["public"]["Enums"]["stato_analisi"]
+          tags: string[]
           updated_at: string
         }
         Insert: {
@@ -143,6 +144,7 @@ export type Database = {
           note?: string | null
           posizione_id?: string | null
           stato_analisi?: Database["public"]["Enums"]["stato_analisi"]
+          tags?: string[]
           updated_at?: string
         }
         Update: {
@@ -157,6 +159,7 @@ export type Database = {
           note?: string | null
           posizione_id?: string | null
           stato_analisi?: Database["public"]["Enums"]["stato_analisi"]
+          tags?: string[]
           updated_at?: string
         }
         Relationships: [

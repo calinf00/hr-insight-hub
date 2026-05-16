@@ -312,14 +312,27 @@ Deno.serve(async (req) => {
       if (cErr || !candidato) throw withStatus("Candidato non trovato", 404);
       if (!candidato.cv_path) throw withStatus("Il candidato non ha un CV caricato", 400);
 
+      // (c) Download PDF da Supabase Storage
       const { data: file, error: dErr } = await supabase.storage.from("cvs").download(candidato.cv_path);
-      if (dErr || !file) throw withStatus("Impossibile scaricare il CV", 500);
+      if (dErr || !file || file.size === 0) {
+        throw withStatus(
+          `STORAGE: PDF non trovato o vuoto per path: ${candidato.cv_path}` +
+            (dErr ? ` (${dErr.message})` : ""),
+          400,
+        );
+      }
 
       const buffer = new Uint8Array(await file.arrayBuffer());
+      if (buffer.byteLength === 0) {
+        throw withStatus(`STORAGE: PDF non trovato o vuoto per path: ${candidato.cv_path}`, 400);
+      }
       const pdf = await getDocumentProxy(buffer);
       const { text: pages } = await extractText(pdf, { mergePages: false });
       const cvText = (Array.isArray(pages) ? pages.join("\n\n") : String(pages || "")).trim();
       if (!cvText) throw withStatus("Impossibile estrarre testo dal CV (PDF vuoto o scansione)", 422);
+
+      // (d) Log caratteri estratti
+      console.log(`[analizza-cv] cid=${cid} cv_path=${candidato.cv_path} chars=${cvText.length}`);
 
       const cvSnippet = sanitizeUntrustedText(cvText.slice(0, 18000));
 

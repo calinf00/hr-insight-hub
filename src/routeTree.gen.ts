@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UtentiRouteImport } from './routes/utenti'
 import { Route as UploadMultiploRouteImport } from './routes/upload-multiplo'
+import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PosizioniRouteImport } from './routes/posizioni'
 import { Route as ImpostazioniRouteImport } from './routes/impostazioni'
 import { Route as CandidatiRouteImport } from './routes/candidati'
@@ -26,6 +27,11 @@ const UtentiRoute = UtentiRouteImport.update({
 const UploadMultiploRoute = UploadMultiploRouteImport.update({
   id: '/upload-multiplo',
   path: '/upload-multiplo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PosizioniRoute = PosizioniRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/ranking': typeof RankingRoute
   '/upload-multiplo': typeof UploadMultiploRoute
   '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/ranking': typeof RankingRoute
   '/upload-multiplo': typeof UploadMultiploRoute
   '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/ranking': typeof RankingRoute
   '/upload-multiplo': typeof UploadMultiploRoute
   '/utenti': typeof UtentiRoute
   '/candidati/$id': typeof CandidatiIdRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/ranking'
     | '/upload-multiplo'
     | '/utenti'
     | '/candidati/$id'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/ranking'
     | '/upload-multiplo'
     | '/utenti'
     | '/candidati/$id'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/ranking'
     | '/upload-multiplo'
     | '/utenti'
     | '/candidati/$id'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   CandidatiRoute: typeof CandidatiRouteWithChildren
   ImpostazioniRoute: typeof ImpostazioniRoute
   PosizioniRoute: typeof PosizioniRoute
+  RankingRoute: typeof RankingRoute
   UploadMultiploRoute: typeof UploadMultiploRoute
   UtentiRoute: typeof UtentiRoute
 }
@@ -147,6 +160,13 @@ declare module '@tanstack/react-router' {
       path: '/upload-multiplo'
       fullPath: '/upload-multiplo'
       preLoaderRoute: typeof UploadMultiploRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/posizioni': {
@@ -212,9 +232,20 @@ const rootRouteChildren: RootRouteChildren = {
   CandidatiRoute: CandidatiRouteWithChildren,
   ImpostazioniRoute: ImpostazioniRoute,
   PosizioniRoute: PosizioniRoute,
+  RankingRoute: RankingRoute,
   UploadMultiploRoute: UploadMultiploRoute,
   UtentiRoute: UtentiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

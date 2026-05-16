@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Briefcase, Users, Sparkles, Settings, LogOut, UserCog, UploadCloud } from "lucide-react";
+import { LayoutDashboard, Briefcase, Users, Sparkles, Settings, LogOut, UserCog, UploadCloud, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -22,6 +22,7 @@ const items = [
   { title: "Candidati", url: "/candidati", icon: Users },
   { title: "Upload multiplo CV", url: "/upload-multiplo", icon: UploadCloud },
   { title: "Analisi AI", url: "/analisi", icon: Sparkles },
+  { title: "Ranking candidati", url: "/ranking", icon: Trophy },
   { title: "Impostazioni", url: "/impostazioni", icon: Settings },
 ];
 

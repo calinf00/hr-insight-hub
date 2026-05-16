@@ -481,16 +481,14 @@ Deno.serve(async (req) => {
       // (c) Download PDF da Supabase Storage
       const { data: file, error: dErr } = await supabase.storage.from("cvs").download(candidato.cv_path);
       if (dErr || !file || file.size === 0) {
-        throw withStatus(
-          `STORAGE: PDF non trovato o vuoto per path: ${candidato.cv_path}` +
-            (dErr ? ` (${dErr.message})` : ""),
-          400,
-        );
+        console.error("Storage download error:", { cid, cv_path: candidato.cv_path, err: dErr });
+        throw withStatus("CV non trovato o file vuoto. Ricarica il PDF e riprova.", 400);
       }
 
       const buffer = new Uint8Array(await file.arrayBuffer());
       if (buffer.byteLength === 0) {
-        throw withStatus(`STORAGE: PDF non trovato o vuoto per path: ${candidato.cv_path}`, 400);
+        console.error("Storage empty buffer:", { cid, cv_path: candidato.cv_path });
+        throw withStatus("CV non trovato o file vuoto. Ricarica il PDF e riprova.", 400);
       }
       const pdf = await getDocumentProxy(buffer);
       const { text: pages } = await extractText(pdf, { mergePages: false });

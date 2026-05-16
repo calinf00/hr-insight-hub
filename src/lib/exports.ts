@@ -66,7 +66,7 @@ export async function exportCandidatiCSV() {
       "Anni esperienza": e.anni_esperienza || "",
       "Ultimo ruolo": e.ultimo_ruolo || "",
       "Competenze tecniche": (e.competenze_tecniche || []).join("; "),
-      "Certificazioni": (e.certificazioni || []).join("; "),
+      "Certificazioni": (e.certificazioni || []).map((c) => typeof c === "string" ? c : (c?.nome ?? "")).filter(Boolean).join("; "),
       "Ruolo applicato": c.posizioni?.titolo || "",
       "Canale": c.canale || "",
       "Stato analisi": c.stato_analisi,

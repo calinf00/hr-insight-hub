@@ -307,6 +307,39 @@ Deno.serve(async (req) => {
       });
     };
 
+    // EXTRACT-ONLY MODE: skip matching, just extract info and update candidate
+    if (extract_only) {
+      const extractRes = await callAI(
+        buildExtractSystemPrompt(lingua),
+        extractUserMessage,
+        "estrazione_cv",
+        buildExtractSchema(fields),
+      );
+      if (!extractRes.ok) {
+        const errText = await extractRes.text();
+        console.error("AI extract error:", extractRes.status, errText);
+        if (extractRes.status === 429) return json({ error: "Limite di richieste AI raggiunto. Riprova tra poco." }, 429);
+        if (extractRes.status === 402) return json({ error: "Crediti AI esauriti." }, 402);
+        return json({ error: "Errore dal servizio AI" }, 500);
+      }
+      let estratte: any = null;
+      try {
+        const extractJson = await extractRes.json();
+        const c = extractJson.choices?.[0]?.message?.content;
+        estratte = typeof c === "string" ? JSON.parse(c) : c;
+      } catch (e) {
+        console.warn("Extract parse error:", e);
+        return json({ error: "Risposta AI non in formato JSON valido" }, 500);
+      }
+      if (estratte) {
+        await supabase
+          .from("candidati")
+          .update({ informazioni_estratte: estratte })
+          .eq("id", candidato_id);
+      }
+      return json({ informazioni_estratte: estratte });
+    }
+
     const [matchRes, extractRes] = await Promise.all([
       callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),
       callAI(buildExtractSystemPrompt(lingua), extractUserMessage, "estrazione_cv", buildExtractSchema(fields)),

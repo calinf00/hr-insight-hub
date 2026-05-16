@@ -143,6 +143,43 @@ function UploadMultiploPage() {
 
   const canStart = files.length > 0 && !!posizioneId && !isProcessing;
 
+  const mergeWithExisting = async (row: FileRow) => {
+    if (!row.candidato_id || !row.duplicato) return;
+    const newId = row.candidato_id;
+    const existingId = row.duplicato.id;
+    try {
+      // Riassegna le analisi appena create al candidato esistente
+      await supabase.from("analisi").update({ candidato_id: existingId }).eq("candidato_id", newId);
+      // Recupera il record nuovo per pulire lo storage
+      const { data: nuovo } = await supabase
+        .from("candidati")
+        .select("cv_path, tags, informazioni_estratte")
+        .eq("id", newId)
+        .single();
+      // Aggiorna esistente con tag (merge) e CV se mancante
+      const { data: esistente } = await supabase
+        .from("candidati")
+        .select("tags, cv_path")
+        .eq("id", existingId)
+        .single();
+      const mergedTags = mergeTags(esistente?.tags ?? [], nuovo?.tags ?? []);
+      const updatePayload: Record<string, unknown> = { tags: mergedTags };
+      if (!esistente?.cv_path && nuovo?.cv_path) {
+        updatePayload.cv_path = nuovo.cv_path;
+      }
+      await supabase.from("candidati").update(updatePayload).eq("id", existingId);
+      // Elimina record duplicato (e lo storage solo se non è stato spostato sull'esistente)
+      await supabase.from("candidati").delete().eq("id", newId);
+      if (nuovo?.cv_path && updatePayload.cv_path !== nuovo.cv_path) {
+        await supabase.storage.from("cvs").remove([nuovo.cv_path]).catch(() => {});
+      }
+      updateRow(row.id, { duplicato: null, candidato_id: existingId });
+      toast.success("Profilo unito con quello esistente");
+    } catch (e) {
+      handleDbError(e, "Errore unione duplicato");
+    }
+  };
+
   const processOne = async (row: FileRow) => {
     const f = row.file;
     let cv_path: string | null = null;

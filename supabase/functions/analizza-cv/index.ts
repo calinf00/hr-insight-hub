@@ -116,15 +116,12 @@ function buildExtractSchema(customFields: Array<{ etichetta: string }>) {
       certificazioni: { type: "array", items: { type: "string" } },
       campi_personalizzati: {
         type: "object",
-        additionalProperties: false,
-        properties: Object.fromEntries(
-          customFields.map((f) => [f.etichetta, { type: ["string", "null"] }]),
-        ),
-        required: customFields.map((f) => f.etichetta),
+        additionalProperties: { type: "string" },
         description:
           customFields.length > 0
-            ? "Valorizza ciascun campo con il testo trovato nel CV, oppure null se assente."
-            : "Nessun campo personalizzato configurato.",
+            ? "Estrai questi campi se presenti nel CV: " +
+              customFields.map((f) => `"${f.etichetta}"`).join(", ")
+            : "Nessun campo personalizzato",
       },
     },
     required: [
@@ -179,14 +176,9 @@ Deno.serve(async (req) => {
       return json({ error: "Accesso riservato agli utenti HR" }, 403);
     }
 
-    const body = await req.json();
-    const { candidato_id, extract_only } = body;
-    const posizioni_ids: string[] = Array.isArray(body.posizioni_ids) ? body.posizioni_ids : [];
-    if (!candidato_id) {
-      return json({ error: "candidato_id obbligatorio" }, 400);
-    }
-    if (!extract_only && posizioni_ids.length === 0) {
-      return json({ error: "posizioni_ids obbligatori" }, 400);
+    const { candidato_id, posizioni_ids } = await req.json();
+    if (!candidato_id || !Array.isArray(posizioni_ids) || posizioni_ids.length === 0) {
+      return json({ error: "candidato_id e posizioni_ids sono obbligatori" }, 400);
     }
 
     const { data: candidato, error: cErr } = await supabase
@@ -209,18 +201,14 @@ Deno.serve(async (req) => {
     // OpenAI key SOLO da secret env
     const openAiKey = Deno.env.get("OPENAI_API_KEY") || null;
 
-    let posizioni: Array<{ id: string; titolo: string; reparto: string | null; descrizione: string; competenze: string | null; anni_esperienza: number | null; titolo_studio: string; lingue: string | null; luogo: string | null; stato: string }> = [];
-    if (!extract_only) {
-      let posQuery = supabase
-        .from("posizioni")
-        .select("id, titolo, reparto, descrizione, competenze, anni_esperienza, titolo_studio, lingue, luogo, stato")
-        .in("id", posizioni_ids);
-      if (escludiChiuse) posQuery = posQuery.neq("stato", "chiusa");
-      const { data: pData, error: pErr } = await posQuery;
-      if (pErr || !pData || pData.length === 0) {
-        return json({ error: "Nessuna posizione valida da valutare (controlla che non siano tutte chiuse)" }, 404);
-      }
-      posizioni = pData;
+    let posQuery = supabase
+      .from("posizioni")
+      .select("id, titolo, reparto, descrizione, competenze, anni_esperienza, titolo_studio, lingue, luogo, stato")
+      .in("id", posizioni_ids);
+    if (escludiChiuse) posQuery = posQuery.neq("stato", "chiusa");
+    const { data: posizioni, error: pErr } = await posQuery;
+    if (pErr || !posizioni || posizioni.length === 0) {
+      return json({ error: "Nessuna posizione valida da valutare (controlla che non siano tutte chiuse)" }, 404);
     }
 
     const { data: customFields } = await supabase
@@ -309,39 +297,6 @@ Deno.serve(async (req) => {
         }),
       });
     };
-
-    // EXTRACT-ONLY MODE: skip matching, just extract info and update candidate
-    if (extract_only) {
-      const extractRes = await callAI(
-        buildExtractSystemPrompt(lingua),
-        extractUserMessage,
-        "estrazione_cv",
-        buildExtractSchema(fields),
-      );
-      if (!extractRes.ok) {
-        const errText = await extractRes.text();
-        console.error("AI extract error:", extractRes.status, errText);
-        if (extractRes.status === 429) return json({ error: "Limite di richieste AI raggiunto. Riprova tra poco." }, 429);
-        if (extractRes.status === 402) return json({ error: "Crediti AI esauriti." }, 402);
-        return json({ error: "Errore dal servizio AI" }, 500);
-      }
-      let estratte: any = null;
-      try {
-        const extractJson = await extractRes.json();
-        const c = extractJson.choices?.[0]?.message?.content;
-        estratte = typeof c === "string" ? JSON.parse(c) : c;
-      } catch (e) {
-        console.warn("Extract parse error:", e);
-        return json({ error: "Risposta AI non in formato JSON valido" }, 500);
-      }
-      if (estratte) {
-        await supabase
-          .from("candidati")
-          .update({ informazioni_estratte: estratte })
-          .eq("id", candidato_id);
-      }
-      return json({ informazioni_estratte: estratte });
-    }
 
     const [matchRes, extractRes] = await Promise.all([
       callAI(buildMatchSystemPrompt(lingua, soglia), matchUserMessage, "analisi_cv", RESPONSE_SCHEMA),

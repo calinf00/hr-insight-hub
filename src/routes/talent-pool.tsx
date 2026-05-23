@@ -17,6 +17,7 @@ import {
   Pencil,
   PenLine,
   X,
+  FormInput,
 } from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";
@@ -178,6 +179,32 @@ function isModificatoManualmente(est: Estratte | null | undefined): boolean {
   return !!(est as (Estratte & { _modificato_manualmente?: boolean }) | null | undefined)
     ?._modificato_manualmente;
 }
+
+function isCompletatoManualmente(c: { stato_analisi: string }): boolean {
+  return c.stato_analisi === "completato_manualmente";
+}
+
+function isEstratteVuoto(est: Estratte | null | undefined): boolean {
+  if (!est) return true;
+  const keys = Object.keys(est).filter((k) => !k.startsWith("_"));
+  if (keys.length === 0) return true;
+  return keys.every((k) => {
+    const v = (est as Record<string, unknown>)[k];
+    if (v == null) return true;
+    if (typeof v === "string") return v.trim() === "";
+    if (Array.isArray(v)) return v.length === 0;
+    if (typeof v === "object") return Object.keys(v as object).length === 0;
+    return false;
+  });
+}
+
+const TITOLI_STUDIO_OPTIONS = [
+  "Nessuno",
+  "Diploma",
+  "Laurea triennale",
+  "Laurea magistrale",
+  "Master/Dottorato",
+] as const;
 
 type ColKey =
   | "email"
@@ -593,6 +620,99 @@ function TalentPoolPage() {
       void queryClient.invalidateQueries({ queryKey: ["talent-pool"] });
     },
     onError: (e) => handleDbError(e, "Errore aggiornamento dati"),
+  });
+
+  // --- Inserimento manuale (per candidati con errore o dati vuoti) ---
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualCandidato, setManualCandidato] = useState<Candidato | null>(null);
+  const [manualForm, setManualForm] = useState({
+    nome: "",
+    cognome: "",
+    email: "",
+    telefono: "",
+    residenza: "",
+    nazionalita: "",
+    titolo_studio: "Nessuno" as (typeof TITOLI_STUDIO_OPTIONS)[number],
+    istituto: "",
+    anni_esperienza: "",
+    ultimo_ruolo: "",
+    competenze_tecniche: "",
+    lingue: [] as Lingua[],
+  });
+
+  const openManualDialog = (c: Candidato) => {
+    const est = (c.informazioni_estratte as Estratte | null) ?? null;
+    setManualCandidato(c);
+    setManualForm({
+      nome: c.nome === "In elaborazione..." ? "" : c.nome ?? "",
+      cognome: c.cognome === "" ? "" : c.cognome ?? "",
+      email: est?.email ?? "",
+      telefono: est?.telefono ?? "",
+      residenza: est?.residenza ?? "",
+      nazionalita: est?.nazionalita ?? "",
+      titolo_studio:
+        (TITOLI_STUDIO_OPTIONS as readonly string[]).includes(est?.titolo_studio ?? "")
+          ? (est!.titolo_studio as (typeof TITOLI_STUDIO_OPTIONS)[number])
+          : "Nessuno",
+      istituto: est?.istituto ?? "",
+      anni_esperienza: est?.anni_esperienza ?? "",
+      ultimo_ruolo: est?.ultimo_ruolo ?? "",
+      competenze_tecniche: (est?.competenze_tecniche ?? []).join("\n"),
+      lingue: (est?.lingue ?? []).map((l) => ({ lingua: l.lingua ?? "", livello: l.livello ?? "" })),
+    });
+    setManualOpen(true);
+  };
+
+  const manualSaveMutation = useMutation({
+    mutationFn: async () => {
+      if (!manualCandidato) return;
+      const nome = manualForm.nome.trim();
+      const cognome = manualForm.cognome.trim();
+      if (!nome || !cognome) throw new Error("Nome e cognome sono obbligatori");
+      const competenze = manualForm.competenze_tecniche
+        .split(/\n|,/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const lingue = manualForm.lingue
+        .map((l) => ({ lingua: l.lingua.trim(), livello: (l.livello ?? "").trim() || undefined }))
+        .filter((l) => l.lingua);
+      const nextEstratte = {
+        email: manualForm.email.trim() || undefined,
+        telefono: manualForm.telefono.trim() || undefined,
+        residenza: manualForm.residenza.trim() || undefined,
+        nazionalita: manualForm.nazionalita.trim() || undefined,
+        titolo_studio: manualForm.titolo_studio,
+        istituto: manualForm.istituto.trim() || undefined,
+        anni_esperienza: manualForm.anni_esperienza.trim() || undefined,
+        ultimo_ruolo: manualForm.ultimo_ruolo.trim() || undefined,
+        competenze_tecniche: competenze,
+        lingue,
+        _modificato_manualmente: true,
+        _inserimento_manuale: true,
+      };
+      const { error } = await supabase
+        .from("candidati")
+        .update({
+          nome,
+          cognome,
+          informazioni_estratte: nextEstratte as never,
+          stato_analisi: "completato_manualmente" as never,
+          note_errore: null,
+        })
+        .eq("id", manualCandidato.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dati inseriti correttamente");
+      setManualOpen(false);
+      setManualCandidato(null);
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool"] });
+    },
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "Errore salvataggio";
+      toast.error(msg);
+    },
   });
 
   // Estrae il messaggio completo restituito dalla edge function (incluso body).
@@ -1136,7 +1256,35 @@ function TalentPoolPage() {
                             <RefreshCw className="h-3 w-3 mr-1" />
                             Riprova
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => openManualDialog(r.candidato)}
+                          >
+                            <FormInput className="h-3 w-3 mr-1" />
+                            Compila manualmente
+                          </Button>
                         </span>
+                      )}
+                      {r.candidato.stato_analisi !== "errore_estrazione" &&
+                        !isCompletatoManualmente(r.candidato) &&
+                        isEstratteVuoto(r.estratte) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs ml-2 align-middle"
+                            onClick={() => openManualDialog(r.candidato)}
+                          >
+                            <FormInput className="h-3 w-3 mr-1" />
+                            Compila manualmente
+                          </Button>
+                        )}
+                      {isCompletatoManualmente(r.candidato) && (
+                        <Badge className="ml-2 align-middle bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Compilato manualmente
+                        </Badge>
                       )}
                       {r.candidato.note_errore && r.candidato.stato_analisi === "errore_estrazione" && (
                         <div className="text-xs text-muted-foreground mt-1">{r.candidato.note_errore}</div>
@@ -1683,6 +1831,215 @@ function TalentPoolPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Inserimento manuale dialog */}
+      <Dialog
+        open={manualOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            setManualOpen(false);
+            setManualCandidato(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Inserimento manuale dati CV — {manualCandidato?.nome} {manualCandidato?.cognome}
+            </DialogTitle>
+            <DialogDescription>
+              Compila i campi che riesci a ricavare dal CV. I dati saranno marcati come
+              inseriti manualmente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">
+                  Nome <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={manualForm.nome}
+                  onChange={(e) => setManualForm({ ...manualForm, nome: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">
+                  Cognome <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={manualForm.cognome}
+                  onChange={(e) => setManualForm({ ...manualForm, cognome: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Email</Label>
+                <Input
+                  type="email"
+                  value={manualForm.email}
+                  onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Telefono</Label>
+                <Input
+                  value={manualForm.telefono}
+                  onChange={(e) => setManualForm({ ...manualForm, telefono: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Residenza</Label>
+                <Input
+                  value={manualForm.residenza}
+                  onChange={(e) => setManualForm({ ...manualForm, residenza: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nazionalità</Label>
+                <Input
+                  value={manualForm.nazionalita}
+                  onChange={(e) => setManualForm({ ...manualForm, nazionalita: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Titolo di studio</Label>
+                <Select
+                  value={manualForm.titolo_studio}
+                  onValueChange={(v) =>
+                    setManualForm({
+                      ...manualForm,
+                      titolo_studio: v as (typeof TITOLI_STUDIO_OPTIONS)[number],
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TITOLI_STUDIO_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Istituto</Label>
+                <Input
+                  value={manualForm.istituto}
+                  onChange={(e) => setManualForm({ ...manualForm, istituto: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Anni di esperienza</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={manualForm.anni_esperienza}
+                  onChange={(e) =>
+                    setManualForm({ ...manualForm, anni_esperienza: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Ultimo ruolo</Label>
+                <Input
+                  value={manualForm.ultimo_ruolo}
+                  onChange={(e) => setManualForm({ ...manualForm, ultimo_ruolo: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Competenze tecniche (una per riga)</Label>
+              <Textarea
+                rows={4}
+                value={manualForm.competenze_tecniche}
+                onChange={(e) =>
+                  setManualForm({ ...manualForm, competenze_tecniche: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Lingue</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() =>
+                    setManualForm({
+                      ...manualForm,
+                      lingue: [...manualForm.lingue, { lingua: "", livello: "" }],
+                    })
+                  }
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Aggiungi lingua
+                </Button>
+              </div>
+              {manualForm.lingue.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nessuna lingua inserita.</p>
+              )}
+              {manualForm.lingue.map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    placeholder="Lingua (es. Inglese)"
+                    value={l.lingua}
+                    onChange={(e) => {
+                      const next = [...manualForm.lingue];
+                      next[i] = { ...next[i], lingua: e.target.value };
+                      setManualForm({ ...manualForm, lingue: next });
+                    }}
+                  />
+                  <Input
+                    placeholder="Livello (es. B2)"
+                    value={l.livello ?? ""}
+                    onChange={(e) => {
+                      const next = [...manualForm.lingue];
+                      next[i] = { ...next[i], livello: e.target.value };
+                      setManualForm({ ...manualForm, lingue: next });
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() =>
+                      setManualForm({
+                        ...manualForm,
+                        lingue: manualForm.lingue.filter((_, idx) => idx !== i),
+                      })
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setManualOpen(false);
+                setManualCandidato(null);
+              }}
+            >
+              Annulla
+            </Button>
+            <Button
+              disabled={manualSaveMutation.isPending}
+              onClick={() => manualSaveMutation.mutate()}
+            >
+              {manualSaveMutation.isPending ? "Salvataggio…" : "Salva dati"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Associa dialog */}
       <Dialog open={associaOpen} onOpenChange={setAssociaOpen}>

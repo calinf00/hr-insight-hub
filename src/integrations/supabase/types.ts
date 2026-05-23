@@ -312,7 +312,11 @@ export type Database = {
       app_role: "hr" | "admin"
       canale_provenienza: "linkedin" | "sito" | "referral" | "altro"
       posizione_stato: "aperta" | "chiusa"
-      stato_analisi: "in_attesa" | "analizzato" | "errore_estrazione"
+      stato_analisi:
+        | "in_attesa"
+        | "analizzato"
+        | "errore_estrazione"
+        | "completato_manualmente"
       titolo_studio:
         | "nessuno"
         | "diploma"
@@ -449,7 +453,12 @@ export const Constants = {
       app_role: ["hr", "admin"],
       canale_provenienza: ["linkedin", "sito", "referral", "altro"],
       posizione_stato: ["aperta", "chiusa"],
-      stato_analisi: ["in_attesa", "analizzato", "errore_estrazione"],
+      stato_analisi: [
+        "in_attesa",
+        "analizzato",
+        "errore_estrazione",
+        "completato_manualmente",
+      ],
       titolo_studio: [
         "nessuno",
         "diploma",

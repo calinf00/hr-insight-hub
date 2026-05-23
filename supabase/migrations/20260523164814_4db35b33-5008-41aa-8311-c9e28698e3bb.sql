@@ -1,0 +1,1 @@
+ALTER TYPE stato_analisi ADD VALUE IF NOT EXISTS 'completato_manualmente';

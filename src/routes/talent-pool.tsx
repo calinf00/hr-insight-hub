@@ -338,7 +338,18 @@ function TalentPoolPage() {
         .from("posizioni")
         .select("id, titolo, reparto, stato, macrocategoria")
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        // fallback senza macrocategoria (colonna potrebbe non esistere ancora)
+        const { data: data2, error: error2 } = await supabase
+          .from("posizioni")
+          .select("id, titolo, reparto, stato")
+          .order("created_at", { ascending: false });
+        if (error2) throw error2;
+        return (data2 ?? []).map((p) => ({ ...p, macrocategoria: null })) as Pick<
+          Posizione,
+          "id" | "titolo" | "reparto" | "stato" | "macrocategoria"
+        >[];
+      }
       return data as Pick<Posizione, "id" | "titolo" | "reparto" | "stato" | "macrocategoria">[];
     },
   });

@@ -152,7 +152,7 @@ function AnalisiPeriodoPage() {
 
       return true;
     });
-  }, [candidatiAll, from, to, onlyWithInfo, onlyNotAnalyzed, lingueFilter, minEsperienza, analisiEsistenti]);
+  }, [candidatiAll, from, to, effectiveOnlyWithInfo, onlyNotAnalyzed, lingueFilter, minEsperienza, analisiEsistenti]);
 
   const canStart = !!posizioneId && filteredCandidati.length > 0 && !running;
 

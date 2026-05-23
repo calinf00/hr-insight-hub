@@ -184,7 +184,7 @@ function AnalisiPeriodoPage() {
 
       const cand = candidatiAll?.find((c) => c.id === row.candidato_id);
       const info = cand?.informazioni_estratte as Record<string, unknown> | null;
-      if (!info || typeof info !== "object" || Object.keys(info).length === 0) {
+      if (analysisMode === "veloce" && (!info || typeof info !== "object" || Object.keys(info).length === 0)) {
         skip++;
         setProgress((prev) => prev.map((r, idx) => idx === i
           ? { ...r, status: "skip", message: "Dati non disponibili (informazioni_estratte vuoto)" }
@@ -193,13 +193,19 @@ function AnalisiPeriodoPage() {
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke("analizza-cv", {
-          body: {
-            candidato_id: row.candidato_id,
-            posizioni_ids: [posizioneId],
-            reanalysis_mode: true,
-          },
-        });
+        const body = analysisMode === "completa"
+          ? {
+              candidato_id: row.candidato_id,
+              posizioni_ids: [posizioneId],
+              reanalysis_mode: false,
+              force_reextract: true,
+            }
+          : {
+              candidato_id: row.candidato_id,
+              posizioni_ids: [posizioneId],
+              reanalysis_mode: true,
+            };
+        const { data, error } = await supabase.functions.invoke("analizza-cv", { body });
         if (error) throw new Error(extractInvokeError(error) || "Errore");
         if ((data as any)?.error) throw new Error((data as any).error);
         ok++;
@@ -211,9 +217,9 @@ function AnalisiPeriodoPage() {
           : r));
       }
 
-      // delay 1s tra un candidato e il successivo
+      // delay tra candidati: 2s in modalità completa (rilettura PDF), 1s in modalità veloce
       if (i < initial.length - 1) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, analysisMode === "completa" ? 2000 : 1000));
       }
     }
 

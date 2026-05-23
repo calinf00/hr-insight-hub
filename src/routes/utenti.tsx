@@ -311,6 +311,33 @@ function UtentiPage() {
         <p className="text-sm text-muted-foreground">Approva o revoca l'accesso HR per gli utenti registrati.</p>
       </div>
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Cerca per email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as any)}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="all">Tutti</option>
+            <option value="admin">Admin</option>
+            <option value="hr">HR</option>
+            <option value="pending">In attesa</option>
+          </select>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Mostrando {filteredProfiles.length} di {profiles.length} utenti
+        </p>
+      </div>
+
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -318,17 +345,18 @@ function UtentiPage() {
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Ruoli</th>
               <th className="px-4 py-2">Registrato</th>
+              <th className="px-4 py-2">Ultimo accesso</th>
               <th className="px-4 py-2 text-right">Azioni</th>
             </tr>
           </thead>
           <tbody>
-            {profiles.map((p) => {
+            {filteredProfiles.map((p) => {
               const rs = rolesOf(p.id);
               const isHr = rs.includes("hr");
               const isAdminUser = rs.includes("admin");
               const isMe = p.id === meId;
               return (
-                <tr key={p.id} className="border-t border-border">
+                <tr key={p.id} className="border-t border-border transition-colors hover:bg-muted/60">
                   <td className="px-4 py-3 font-medium">{p.email}{isMe && <span className="ml-2 text-xs text-muted-foreground">(tu)</span>}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
@@ -338,6 +366,7 @@ function UtentiPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString("it-IT")}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatLastSignIn(lastSignIns[p.id])}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {!isMe && (
@@ -368,8 +397,8 @@ function UtentiPage() {
                 </tr>
               );
             })}
-            {profiles.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nessun utente registrato.</td></tr>
+            {filteredProfiles.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nessun utente trovato.</td></tr>
             )}
           </tbody>
         </table>

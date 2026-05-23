@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { getUserLastSignIns } from "@/lib/users.functions";
+import { handleDbError } from "@/lib/handle-error";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -287,7 +288,7 @@ function UtentiPage() {
       closeResetDialog();
       void loadLogs();
     } catch (err: any) {
-      toast.error(err.message || "Errore durante il reset");
+      handleDbError(err, "admin-reset-password", err?.message || "Errore durante il reset");
     } finally {
       setResetBusy(false);
     }
@@ -323,7 +324,7 @@ function UtentiPage() {
       setDeleteUser(null);
       void loadLogs();
     } catch (err: any) {
-      toast.error(err.message || "Errore durante l'eliminazione");
+      handleDbError(err, "admin-delete-user", err?.message || "Errore durante l'eliminazione");
     } finally {
       setDeleteBusy(false);
     }

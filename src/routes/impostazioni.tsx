@@ -763,7 +763,7 @@ function SicurezzaAccountSection() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
-      toast.error(err.message || "Errore durante l'aggiornamento della password");
+      handleDbError(err, "auth.updatePassword", "Errore durante l'aggiornamento della password");
     } finally {
       setBusy(false);
     }

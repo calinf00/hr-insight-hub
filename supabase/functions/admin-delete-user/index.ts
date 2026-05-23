@@ -84,13 +84,15 @@ Deno.serve(async (req) => {
     const { data: targetUser, error: getUserError } =
       await supabaseAdmin.auth.admin.getUserById(userId);
     if (getUserError) {
-      return jsonResponse({ error: getUserError.message }, 400);
+      console.error("admin-delete-user getUserById:", getUserError);
+      return jsonResponse({ error: "Impossibile eliminare l'account" }, 400);
     }
     const targetEmail = targetUser?.user?.email ?? null;
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
-      return jsonResponse({ error: deleteError.message }, 400);
+      console.error("admin-delete-user deleteUser:", deleteError);
+      return jsonResponse({ error: "Impossibile eliminare l'account" }, 400);
     }
 
     const { data: callerUser } = await supabaseAdmin.auth.admin.getUserById(callerUserId);
@@ -106,6 +108,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true }, 200);
   } catch (err: any) {
     console.error("admin-delete-user error:", err);
-    return jsonResponse({ error: err.message || "Internal server error" }, 500);
+    return jsonResponse({ error: "Errore durante l'eliminazione" }, 500);
   }
 });

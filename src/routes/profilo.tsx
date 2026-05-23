@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
+import { handleDbError } from "@/lib/handle-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,7 +73,7 @@ function ProfiloPage() {
       .eq("id", user.id);
     setSaving(false);
     if (error) {
-      toast.error(error.message);
+      handleDbError(error, "profilo.update", "Impossibile aggiornare il profilo");
       return;
     }
     setInitialDisplayName(displayName.trim());

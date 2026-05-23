@@ -14,6 +14,9 @@ import {
   CheckCircle2,
   Tag as TagIcon,
   Plus,
+  Pencil,
+  PenLine,
+  X,
 } from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";

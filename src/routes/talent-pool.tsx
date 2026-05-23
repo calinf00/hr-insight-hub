@@ -1092,7 +1092,23 @@ function TalentPoolPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div>
+              <Label className="text-xs">Titolo di studio</Label>
+              <Select value={titoloStudio} onValueChange={setTitoloStudio}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tutti">Tutti</SelectItem>
+                  {tuttiTitoli.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label className="text-xs">
                 Anni esperienza: {espRange[0]} – {espRange[1] >= 20 ? "20+" : espRange[1]}

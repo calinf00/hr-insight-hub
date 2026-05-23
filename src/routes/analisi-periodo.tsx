@@ -265,6 +265,66 @@ function AnalisiPeriodoPage() {
           </div>
 
           <div className="space-y-3">
+            <Label>Modalità di analisi</Label>
+            <RadioGroup
+              value={analysisMode}
+              onValueChange={(v) => setAnalysisMode(v as "veloce" | "completa")}
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              <label
+                htmlFor="mode-veloce"
+                className={cn(
+                  "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                  analysisMode === "veloce"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/40",
+                )}
+              >
+                <RadioGroupItem value="veloce" id="mode-veloce" className="mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Zap className="h-4 w-4 text-emerald-600" />
+                    Veloce — usa dati già estratti
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Riusa le informazioni già estratte dai CV. Più rapido e consuma meno crediti.
+                  </p>
+                </div>
+              </label>
+              <label
+                htmlFor="mode-completa"
+                className={cn(
+                  "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                  analysisMode === "completa"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/40",
+                )}
+              >
+                <RadioGroupItem value="completa" id="mode-completa" className="mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <FileSearch className="h-4 w-4 text-amber-600" />
+                    Completa — rilegge il PDF con l'IA
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Estrae di nuovo i dati dal PDF prima di rivalutare il candidato.
+                  </p>
+                </div>
+              </label>
+            </RadioGroup>
+
+            {analysisMode === "completa" && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                <span>
+                  Questa modalità rilancia l'estrazione completa del PDF via AI.
+                  È più lenta e consuma più crediti API.
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
             <Label>Periodo di caricamento CV</Label>
             <div className="flex flex-wrap gap-2">
               {SHORTCUTS.map((s) => (

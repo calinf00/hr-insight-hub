@@ -123,7 +123,30 @@ function UtentiPage() {
 
   useEffect(() => { void load(); }, []);
 
-  const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
+  const filteredProfiles = profiles.filter((p) => {
+    const rs = rolesOf(p.id);
+    const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole =
+      roleFilter === "all"
+        ? true
+        : roleFilter === "admin"
+        ? rs.includes("admin")
+        : roleFilter === "hr"
+        ? rs.includes("hr")
+        : !rs.includes("admin") && !rs.includes("hr");
+    return matchesSearch && matchesRole;
+  });
+
+  const formatLastSignIn = (iso: string | undefined) => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const actionLabel = (action: string) => {
     switch (action) {

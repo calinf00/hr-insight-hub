@@ -41,6 +41,15 @@ export const Route = createFileRoute("/utenti")({
 
 type ProfileRow = { id: string; email: string; created_at: string };
 type RoleRow = { user_id: string; role: "hr" | "admin" };
+type LogRow = {
+  id: string;
+  admin_id: string;
+  admin_email: string | null;
+  action: string;
+  target_user_id: string | null;
+  target_email: string | null;
+  created_at: string;
+};
 
 function UtentiPage() {
   const router = useRouter();

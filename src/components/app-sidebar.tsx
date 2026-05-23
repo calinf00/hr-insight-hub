@@ -25,6 +25,7 @@ const items = [
   { title: "Analisi su periodo", url: "/analisi-periodo", icon: CalendarRange },
   { title: "Ranking candidati", url: "/ranking", icon: Trophy },
   { title: "Talent Pool", url: "/talent-pool", icon: Database },
+  { title: "Profilo", url: "/profilo", icon: User },
   { title: "Impostazioni", url: "/impostazioni", icon: Settings },
 ];
 

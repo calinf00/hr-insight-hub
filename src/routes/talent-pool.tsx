@@ -511,6 +511,85 @@ function TalentPoolPage() {
     onError: (e) => handleDbError(e, "Errore aggiornamento nota"),
   });
 
+  // --- Modifica manuale dei dati estratti ---
+  const [editEstratte, setEditEstratte] = useState(false);
+  const [editForm, setEditForm] = useState<{
+    nome: string;
+    cognome: string;
+    email: string;
+    telefono: string;
+    residenza: string;
+    nazionalita: string;
+    titolo_studio: string;
+    istituto: string;
+    anni_esperienza: string;
+    ultimo_ruolo: string;
+    competenze_tecniche: string; // separato da virgola/newline
+    lingue: Lingua[];
+  } | null>(null);
+
+  const startEdit = (cand: Candidato, est: Estratte | null) => {
+    setEditForm({
+      nome: cand.nome ?? "",
+      cognome: cand.cognome ?? "",
+      email: est?.email ?? "",
+      telefono: est?.telefono ?? "",
+      residenza: est?.residenza ?? "",
+      nazionalita: est?.nazionalita ?? "",
+      titolo_studio: est?.titolo_studio ?? "",
+      istituto: est?.istituto ?? "",
+      anni_esperienza: est?.anni_esperienza ?? "",
+      ultimo_ruolo: est?.ultimo_ruolo ?? "",
+      competenze_tecniche: (est?.competenze_tecniche ?? []).join(", "),
+      lingue: (est?.lingue ?? []).map((l) => ({ lingua: l.lingua ?? "", livello: l.livello ?? "" })),
+    });
+    setEditEstratte(true);
+  };
+
+  const saveEstratteMutation = useMutation({
+    mutationFn: async ({ id, current }: { id: string; current: Estratte | null }) => {
+      if (!editForm) return;
+      const competenze = editForm.competenze_tecniche
+        .split(/[,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const lingue = editForm.lingue
+        .map((l) => ({ lingua: l.lingua.trim(), livello: (l.livello ?? "").trim() || undefined }))
+        .filter((l) => l.lingua);
+      const nextEstratte: Estratte & { _modificato_manualmente: boolean } = {
+        ...(current ?? {}),
+        email: editForm.email.trim() || undefined,
+        telefono: editForm.telefono.trim() || undefined,
+        residenza: editForm.residenza.trim() || undefined,
+        nazionalita: editForm.nazionalita.trim() || undefined,
+        titolo_studio: editForm.titolo_studio.trim() || undefined,
+        istituto: editForm.istituto.trim() || undefined,
+        anni_esperienza: editForm.anni_esperienza.trim() || undefined,
+        ultimo_ruolo: editForm.ultimo_ruolo.trim() || undefined,
+        competenze_tecniche: competenze,
+        lingue,
+        _modificato_manualmente: true,
+      };
+      const { error } = await supabase
+        .from("candidati")
+        .update({
+          nome: editForm.nome.trim() || "—",
+          cognome: editForm.cognome.trim() || "—",
+          informazioni_estratte: nextEstratte as unknown as Record<string, unknown>,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dati aggiornati");
+      setEditEstratte(false);
+      setEditForm(null);
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool"] });
+    },
+    onError: (e) => handleDbError(e, "Errore aggiornamento dati"),
+  });
+
   // Estrae il messaggio completo restituito dalla edge function (incluso body).
   const extractInvokeError = async (error: any): Promise<string> => {
     try {

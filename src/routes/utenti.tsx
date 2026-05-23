@@ -334,6 +334,57 @@ function UtentiPage() {
         </table>
       </div>
 
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <History className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Storico azioni admin</h2>
+        </div>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2">Data/ora</th>
+                <th className="px-4 py-2">Admin</th>
+                <th className="px-4 py-2">Azione</th>
+                <th className="px-4 py-2">Utente interessato</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logsLoading ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nessuna azione registrata.</td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="border-t border-border">
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(log.created_at).toLocaleString("it-IT", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{log.admin_email ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={actionBadgeVariant(log.action)}>{actionLabel(log.action)}</Badge>
+                    </td>
+                    <td className="px-4 py-3">{log.target_email ?? "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeResetDialog(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

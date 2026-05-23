@@ -72,7 +72,7 @@ function ProfiloPage() {
       .eq("id", user.id);
     setSaving(false);
     if (error) {
-      toast.error(error.message);
+      handleDbError(error, "profilo.update", "Impossibile aggiornare il profilo");
       return;
     }
     setInitialDisplayName(displayName.trim());

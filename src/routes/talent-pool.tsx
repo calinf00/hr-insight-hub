@@ -14,6 +14,9 @@ import {
   CheckCircle2,
   Tag as TagIcon,
   Plus,
+  Pencil,
+  PenLine,
+  X,
 } from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";
@@ -169,6 +172,11 @@ function scoreColor(s: number | null | undefined) {
   if (s >= 60) return "bg-amber-500 text-white";
   if (s >= 40) return "bg-orange-500 text-white";
   return "bg-destructive text-destructive-foreground";
+}
+
+function isModificatoManualmente(est: Estratte | null | undefined): boolean {
+  return !!(est as (Estratte & { _modificato_manualmente?: boolean }) | null | undefined)
+    ?._modificato_manualmente;
 }
 
 type ColKey =
@@ -506,6 +514,85 @@ function TalentPoolPage() {
       void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
     },
     onError: (e) => handleDbError(e, "Errore aggiornamento nota"),
+  });
+
+  // --- Modifica manuale dei dati estratti ---
+  const [editEstratte, setEditEstratte] = useState(false);
+  const [editForm, setEditForm] = useState<{
+    nome: string;
+    cognome: string;
+    email: string;
+    telefono: string;
+    residenza: string;
+    nazionalita: string;
+    titolo_studio: string;
+    istituto: string;
+    anni_esperienza: string;
+    ultimo_ruolo: string;
+    competenze_tecniche: string; // separato da virgola/newline
+    lingue: Lingua[];
+  } | null>(null);
+
+  const startEdit = (cand: Candidato, est: Estratte | null) => {
+    setEditForm({
+      nome: cand.nome ?? "",
+      cognome: cand.cognome ?? "",
+      email: est?.email ?? "",
+      telefono: est?.telefono ?? "",
+      residenza: est?.residenza ?? "",
+      nazionalita: est?.nazionalita ?? "",
+      titolo_studio: est?.titolo_studio ?? "",
+      istituto: est?.istituto ?? "",
+      anni_esperienza: est?.anni_esperienza ?? "",
+      ultimo_ruolo: est?.ultimo_ruolo ?? "",
+      competenze_tecniche: (est?.competenze_tecniche ?? []).join(", "),
+      lingue: (est?.lingue ?? []).map((l) => ({ lingua: l.lingua ?? "", livello: l.livello ?? "" })),
+    });
+    setEditEstratte(true);
+  };
+
+  const saveEstratteMutation = useMutation({
+    mutationFn: async ({ id, current }: { id: string; current: Estratte | null }) => {
+      if (!editForm) return;
+      const competenze = editForm.competenze_tecniche
+        .split(/[,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const lingue = editForm.lingue
+        .map((l) => ({ lingua: l.lingua.trim(), livello: (l.livello ?? "").trim() || undefined }))
+        .filter((l) => l.lingua);
+      const nextEstratte: Estratte & { _modificato_manualmente: boolean } = {
+        ...(current ?? {}),
+        email: editForm.email.trim() || undefined,
+        telefono: editForm.telefono.trim() || undefined,
+        residenza: editForm.residenza.trim() || undefined,
+        nazionalita: editForm.nazionalita.trim() || undefined,
+        titolo_studio: editForm.titolo_studio.trim() || undefined,
+        istituto: editForm.istituto.trim() || undefined,
+        anni_esperienza: editForm.anni_esperienza.trim() || undefined,
+        ultimo_ruolo: editForm.ultimo_ruolo.trim() || undefined,
+        competenze_tecniche: competenze,
+        lingue,
+        _modificato_manualmente: true,
+      };
+      const { error } = await supabase
+        .from("candidati")
+        .update({
+          nome: editForm.nome.trim() || "—",
+          cognome: editForm.cognome.trim() || "—",
+          informazioni_estratte: nextEstratte as never,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dati aggiornati");
+      setEditEstratte(false);
+      setEditForm(null);
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool"] });
+    },
+    onError: (e) => handleDbError(e, "Errore aggiornamento dati"),
   });
 
   // Estrae il messaggio completo restituito dalla edge function (incluso body).
@@ -1020,6 +1107,15 @@ function TalentPoolPage() {
                       >
                         {r.candidato.nome} {r.candidato.cognome}
                       </button>
+                      {isModificatoManualmente(r.estratte) && (
+                        <Badge
+                          className="ml-2 align-middle bg-blue-500/15 text-blue-700 border border-blue-500/30 dark:text-blue-400"
+                          title="Dati modificati manualmente"
+                        >
+                          <PenLine className="h-3 w-3 mr-1" />
+                          Modificato
+                        </Badge>
+                      )}
                       {r.candidato.nome === "In elaborazione..." && (
                         <Badge className="ml-2 bg-yellow-500/15 text-yellow-700 border border-yellow-500/30 dark:text-yellow-400">
                           ⚠ Dati incompleti
@@ -1204,6 +1300,12 @@ function TalentPoolPage() {
                 <SheetDescription>
                   Candidatura del {fmtDate(openCandidato.candidato.created_at)}
                 </SheetDescription>
+                {isModificatoManualmente(openCandidato.estratte) && (
+                  <Badge className="mt-2 w-fit bg-blue-500/15 text-blue-700 border border-blue-500/30 dark:text-blue-400">
+                    <PenLine className="h-3 w-3 mr-1" />
+                    Dati modificati manualmente
+                  </Badge>
+                )}
               </SheetHeader>
 
               <div className="space-y-6 mt-6">
@@ -1280,39 +1382,239 @@ function TalentPoolPage() {
 
                 {/* Estratti */}
                 <div>
-                  <h3 className="font-semibold text-sm mb-2">Dati estratti dal CV</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <Info label="Email" value={openCandidato.estratte?.email} />
-                    <Info label="Telefono" value={openCandidato.estratte?.telefono} />
-                    <Info label="Residenza" value={openCandidato.estratte?.residenza} />
-                    <Info label="Nazionalità" value={openCandidato.estratte?.nazionalita} />
-                    <Info label="Titolo di studio" value={openCandidato.estratte?.titolo_studio} />
-                    <Info label="Istituto" value={openCandidato.estratte?.istituto} />
-                    <Info label="Anni esperienza" value={openCandidato.estratte?.anni_esperienza} />
-                    <Info label="Ultimo ruolo" value={openCandidato.estratte?.ultimo_ruolo} />
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-sm">Dati estratti dal CV</h3>
+                    {!editEstratte ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => startEdit(openCandidato.candidato, openCandidato.estratte)}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Modifica dati
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => {
+                          setEditEstratte(false);
+                          setEditForm(null);
+                        }}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Annulla
+                      </Button>
+                    )}
                   </div>
-                  {(openCandidato.estratte?.competenze_tecniche?.length ?? 0) > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs text-muted-foreground mb-1">Competenze</div>
-                      <div className="flex flex-wrap gap-1">
-                        {openCandidato.estratte?.competenze_tecniche?.map((c, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
-                            {c}
-                          </Badge>
+
+                  {!editEstratte && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <Info label="Email" value={openCandidato.estratte?.email} />
+                        <Info label="Telefono" value={openCandidato.estratte?.telefono} />
+                        <Info label="Residenza" value={openCandidato.estratte?.residenza} />
+                        <Info label="Nazionalità" value={openCandidato.estratte?.nazionalita} />
+                        <Info label="Titolo di studio" value={openCandidato.estratte?.titolo_studio} />
+                        <Info label="Istituto" value={openCandidato.estratte?.istituto} />
+                        <Info label="Anni esperienza" value={openCandidato.estratte?.anni_esperienza} />
+                        <Info label="Ultimo ruolo" value={openCandidato.estratte?.ultimo_ruolo} />
+                      </div>
+                      {(openCandidato.estratte?.competenze_tecniche?.length ?? 0) > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs text-muted-foreground mb-1">Competenze</div>
+                          <div className="flex flex-wrap gap-1">
+                            {openCandidato.estratte?.competenze_tecniche?.map((c, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {(openCandidato.estratte?.lingue?.length ?? 0) > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs text-muted-foreground mb-1">Lingue</div>
+                          <div className="flex flex-wrap gap-1">
+                            {openCandidato.estratte?.lingue?.map((l, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {l.lingua}
+                                {l.livello ? ` (${l.livello})` : ""}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {editEstratte && editForm && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nome</Label>
+                          <Input
+                            value={editForm.nome}
+                            onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Cognome</Label>
+                          <Input
+                            value={editForm.cognome}
+                            onChange={(e) => setEditForm({ ...editForm, cognome: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Email</Label>
+                          <Input
+                            value={editForm.email}
+                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Telefono</Label>
+                          <Input
+                            value={editForm.telefono}
+                            onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Residenza</Label>
+                          <Input
+                            value={editForm.residenza}
+                            onChange={(e) => setEditForm({ ...editForm, residenza: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nazionalità</Label>
+                          <Input
+                            value={editForm.nazionalita}
+                            onChange={(e) => setEditForm({ ...editForm, nazionalita: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Titolo di studio</Label>
+                          <Input
+                            value={editForm.titolo_studio}
+                            onChange={(e) => setEditForm({ ...editForm, titolo_studio: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Istituto</Label>
+                          <Input
+                            value={editForm.istituto}
+                            onChange={(e) => setEditForm({ ...editForm, istituto: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Anni esperienza</Label>
+                          <Input
+                            value={editForm.anni_esperienza}
+                            onChange={(e) => setEditForm({ ...editForm, anni_esperienza: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Ultimo ruolo</Label>
+                          <Input
+                            value={editForm.ultimo_ruolo}
+                            onChange={(e) => setEditForm({ ...editForm, ultimo_ruolo: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          Competenze tecniche (separate da virgola o a capo)
+                        </Label>
+                        <Textarea
+                          rows={3}
+                          value={editForm.competenze_tecniche}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, competenze_tecniche: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Lingue</Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() =>
+                              setEditForm({
+                                ...editForm,
+                                lingue: [...editForm.lingue, { lingua: "", livello: "" }],
+                              })
+                            }
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Aggiungi
+                          </Button>
+                        </div>
+                        {editForm.lingue.length === 0 && (
+                          <p className="text-xs text-muted-foreground">Nessuna lingua.</p>
+                        )}
+                        {editForm.lingue.map((l, i) => (
+                          <div key={i} className="flex gap-2">
+                            <Input
+                              placeholder="Lingua"
+                              value={l.lingua}
+                              onChange={(e) => {
+                                const next = [...editForm.lingue];
+                                next[i] = { ...next[i], lingua: e.target.value };
+                                setEditForm({ ...editForm, lingue: next });
+                              }}
+                            />
+                            <Input
+                              placeholder="Livello"
+                              value={l.livello ?? ""}
+                              onChange={(e) => {
+                                const next = [...editForm.lingue];
+                                next[i] = { ...next[i], livello: e.target.value };
+                                setEditForm({ ...editForm, lingue: next });
+                              }}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const next = editForm.lingue.filter((_, idx) => idx !== i);
+                                setEditForm({ ...editForm, lingue: next });
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-                  {(openCandidato.estratte?.lingue?.length ?? 0) > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs text-muted-foreground mb-1">Lingue</div>
-                      <div className="flex flex-wrap gap-1">
-                        {openCandidato.estratte?.lingue?.map((l, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {l.lingua}
-                            {l.livello ? ` (${l.livello})` : ""}
-                          </Badge>
-                        ))}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          className="flex-1"
+                          disabled={saveEstratteMutation.isPending}
+                          onClick={() =>
+                            saveEstratteMutation.mutate({
+                              id: openCandidato.candidato.id,
+                              current: openCandidato.estratte,
+                            })
+                          }
+                        >
+                          {saveEstratteMutation.isPending ? "Salvataggio…" : "Salva modifiche"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setEditEstratte(false);
+                            setEditForm(null);
+                          }}
+                        >
+                          Annulla
+                        </Button>
                       </div>
                     </div>
                   )}

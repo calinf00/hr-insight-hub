@@ -853,6 +853,8 @@ function TalentPoolPage() {
     setDataFrom("");
     setDataTo("");
     setTagFilter([]);
+    setPosizioneFilter("");
+    setMacrocategoriaFilter("");
   };
 
   const showCol = (k: ColKey) => visibleCols.includes(k);

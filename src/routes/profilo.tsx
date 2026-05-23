@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
+import { handleDbError } from "@/lib/handle-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

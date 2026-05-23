@@ -54,7 +54,10 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) toast.error(error.message);
+    if (error) {
+      console.error("[auth.signOut]", error);
+      toast.error("Impossibile completare il logout. Riprova.");
+    }
   };
 
   return (

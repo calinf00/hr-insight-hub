@@ -287,7 +287,7 @@ function UtentiPage() {
       closeResetDialog();
       void loadLogs();
     } catch (err: any) {
-      toast.error(err.message || "Errore durante il reset");
+      handleDbError(err, "admin-reset-password", err?.message || "Errore durante il reset");
     } finally {
       setResetBusy(false);
     }
@@ -323,7 +323,7 @@ function UtentiPage() {
       setDeleteUser(null);
       void loadLogs();
     } catch (err: any) {
-      toast.error(err.message || "Errore durante l'eliminazione");
+      handleDbError(err, "admin-delete-user", err?.message || "Errore durante l'eliminazione");
     } finally {
       setDeleteBusy(false);
     }

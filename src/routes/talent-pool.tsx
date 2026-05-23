@@ -622,6 +622,99 @@ function TalentPoolPage() {
     onError: (e) => handleDbError(e, "Errore aggiornamento dati"),
   });
 
+  // --- Inserimento manuale (per candidati con errore o dati vuoti) ---
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualCandidato, setManualCandidato] = useState<Candidato | null>(null);
+  const [manualForm, setManualForm] = useState({
+    nome: "",
+    cognome: "",
+    email: "",
+    telefono: "",
+    residenza: "",
+    nazionalita: "",
+    titolo_studio: "Nessuno" as (typeof TITOLI_STUDIO_OPTIONS)[number],
+    istituto: "",
+    anni_esperienza: "",
+    ultimo_ruolo: "",
+    competenze_tecniche: "",
+    lingue: [] as Lingua[],
+  });
+
+  const openManualDialog = (c: Candidato) => {
+    const est = (c.informazioni_estratte as Estratte | null) ?? null;
+    setManualCandidato(c);
+    setManualForm({
+      nome: c.nome === "In elaborazione..." ? "" : c.nome ?? "",
+      cognome: c.cognome === "" ? "" : c.cognome ?? "",
+      email: est?.email ?? "",
+      telefono: est?.telefono ?? "",
+      residenza: est?.residenza ?? "",
+      nazionalita: est?.nazionalita ?? "",
+      titolo_studio:
+        (TITOLI_STUDIO_OPTIONS as readonly string[]).includes(est?.titolo_studio ?? "")
+          ? (est!.titolo_studio as (typeof TITOLI_STUDIO_OPTIONS)[number])
+          : "Nessuno",
+      istituto: est?.istituto ?? "",
+      anni_esperienza: est?.anni_esperienza ?? "",
+      ultimo_ruolo: est?.ultimo_ruolo ?? "",
+      competenze_tecniche: (est?.competenze_tecniche ?? []).join("\n"),
+      lingue: (est?.lingue ?? []).map((l) => ({ lingua: l.lingua ?? "", livello: l.livello ?? "" })),
+    });
+    setManualOpen(true);
+  };
+
+  const manualSaveMutation = useMutation({
+    mutationFn: async () => {
+      if (!manualCandidato) return;
+      const nome = manualForm.nome.trim();
+      const cognome = manualForm.cognome.trim();
+      if (!nome || !cognome) throw new Error("Nome e cognome sono obbligatori");
+      const competenze = manualForm.competenze_tecniche
+        .split(/\n|,/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const lingue = manualForm.lingue
+        .map((l) => ({ lingua: l.lingua.trim(), livello: (l.livello ?? "").trim() || undefined }))
+        .filter((l) => l.lingua);
+      const nextEstratte = {
+        email: manualForm.email.trim() || undefined,
+        telefono: manualForm.telefono.trim() || undefined,
+        residenza: manualForm.residenza.trim() || undefined,
+        nazionalita: manualForm.nazionalita.trim() || undefined,
+        titolo_studio: manualForm.titolo_studio,
+        istituto: manualForm.istituto.trim() || undefined,
+        anni_esperienza: manualForm.anni_esperienza.trim() || undefined,
+        ultimo_ruolo: manualForm.ultimo_ruolo.trim() || undefined,
+        competenze_tecniche: competenze,
+        lingue,
+        _modificato_manualmente: true,
+        _inserimento_manuale: true,
+      };
+      const { error } = await supabase
+        .from("candidati")
+        .update({
+          nome,
+          cognome,
+          informazioni_estratte: nextEstratte as never,
+          stato_analisi: "completato_manualmente" as never,
+          note_errore: null,
+        })
+        .eq("id", manualCandidato.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dati inseriti correttamente");
+      setManualOpen(false);
+      setManualCandidato(null);
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool", "candidati"] });
+      void queryClient.invalidateQueries({ queryKey: ["talent-pool"] });
+    },
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "Errore salvataggio";
+      toast.error(msg);
+    },
+  });
+
   // Estrae il messaggio completo restituito dalla edge function (incluso body).
   const extractInvokeError = async (error: any): Promise<string> => {
     try {

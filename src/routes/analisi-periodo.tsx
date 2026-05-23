@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import {
-  CalendarIcon, Sparkles, Trophy, AlertTriangle, CheckCircle2, SkipForward, Clock,
+  CalendarIcon, Sparkles, Trophy, AlertTriangle, CheckCircle2, SkipForward, Clock, Zap, FileSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -50,10 +51,13 @@ function AnalisiPeriodoPage() {
   const [posizioneId, setPosizioneId] = useState<string>("");
   const [from, setFrom] = useState<Date | undefined>(undefined);
   const [to, setTo] = useState<Date | undefined>(undefined);
+  const [analysisMode, setAnalysisMode] = useState<"veloce" | "completa">("veloce");
   const [onlyWithInfo, setOnlyWithInfo] = useState(true);
   const [onlyNotAnalyzed, setOnlyNotAnalyzed] = useState(true);
   const [lingueFilter, setLingueFilter] = useState<string>("");
   const [minEsperienza, setMinEsperienza] = useState<string>("");
+
+  const effectiveOnlyWithInfo = analysisMode === "completa" ? false : onlyWithInfo;
 
   const [progress, setProgress] = useState<ProgressRow[]>([]);
   const [running, setRunning] = useState(false);
@@ -129,7 +133,7 @@ function AnalisiPeriodoPage() {
       const info = c.informazioni_estratte as Record<string, unknown> | null;
       const hasInfo = !!info && typeof info === "object" && Object.keys(info).length > 0;
 
-      if (onlyWithInfo && (!hasInfo || c.stato_analisi === "errore_estrazione")) return false;
+      if (effectiveOnlyWithInfo && (!hasInfo || c.stato_analisi === "errore_estrazione")) return false;
       if (onlyNotAnalyzed && analisiEsistenti?.has(c.id)) return false;
 
       if (lingueTokens.length > 0) {
@@ -148,7 +152,7 @@ function AnalisiPeriodoPage() {
 
       return true;
     });
-  }, [candidatiAll, from, to, onlyWithInfo, onlyNotAnalyzed, lingueFilter, minEsperienza, analisiEsistenti]);
+  }, [candidatiAll, from, to, effectiveOnlyWithInfo, onlyNotAnalyzed, lingueFilter, minEsperienza, analisiEsistenti]);
 
   const canStart = !!posizioneId && filteredCandidati.length > 0 && !running;
 
@@ -180,7 +184,7 @@ function AnalisiPeriodoPage() {
 
       const cand = candidatiAll?.find((c) => c.id === row.candidato_id);
       const info = cand?.informazioni_estratte as Record<string, unknown> | null;
-      if (!info || typeof info !== "object" || Object.keys(info).length === 0) {
+      if (analysisMode === "veloce" && (!info || typeof info !== "object" || Object.keys(info).length === 0)) {
         skip++;
         setProgress((prev) => prev.map((r, idx) => idx === i
           ? { ...r, status: "skip", message: "Dati non disponibili (informazioni_estratte vuoto)" }
@@ -189,13 +193,19 @@ function AnalisiPeriodoPage() {
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke("analizza-cv", {
-          body: {
-            candidato_id: row.candidato_id,
-            posizioni_ids: [posizioneId],
-            reanalysis_mode: true,
-          },
-        });
+        const body = analysisMode === "completa"
+          ? {
+              candidato_id: row.candidato_id,
+              posizioni_ids: [posizioneId],
+              reanalysis_mode: false,
+              force_reextract: true,
+            }
+          : {
+              candidato_id: row.candidato_id,
+              posizioni_ids: [posizioneId],
+              reanalysis_mode: true,
+            };
+        const { data, error } = await supabase.functions.invoke("analizza-cv", { body });
         if (error) throw new Error(extractInvokeError(error) || "Errore");
         if ((data as any)?.error) throw new Error((data as any).error);
         ok++;
@@ -207,9 +217,9 @@ function AnalisiPeriodoPage() {
           : r));
       }
 
-      // delay 1s tra un candidato e il successivo
+      // delay tra candidati: 2s in modalità completa (rilettura PDF), 1s in modalità veloce
       if (i < initial.length - 1) {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, analysisMode === "completa" ? 2000 : 1000));
       }
     }
 
@@ -255,6 +265,66 @@ function AnalisiPeriodoPage() {
           </div>
 
           <div className="space-y-3">
+            <Label>Modalità di analisi</Label>
+            <RadioGroup
+              value={analysisMode}
+              onValueChange={(v) => setAnalysisMode(v as "veloce" | "completa")}
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              <label
+                htmlFor="mode-veloce"
+                className={cn(
+                  "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                  analysisMode === "veloce"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/40",
+                )}
+              >
+                <RadioGroupItem value="veloce" id="mode-veloce" className="mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Zap className="h-4 w-4 text-emerald-600" />
+                    Veloce — usa dati già estratti
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Riusa le informazioni già estratte dai CV. Più rapido e consuma meno crediti.
+                  </p>
+                </div>
+              </label>
+              <label
+                htmlFor="mode-completa"
+                className={cn(
+                  "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
+                  analysisMode === "completa"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/40",
+                )}
+              >
+                <RadioGroupItem value="completa" id="mode-completa" className="mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <FileSearch className="h-4 w-4 text-amber-600" />
+                    Completa — rilegge il PDF con l'IA
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Estrae di nuovo i dati dal PDF prima di rivalutare il candidato.
+                  </p>
+                </div>
+              </label>
+            </RadioGroup>
+
+            {analysisMode === "completa" && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                <span>
+                  Questa modalità rilancia l'estrazione completa del PDF via AI.
+                  È più lenta e consuma più crediti API.
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
             <Label>Periodo di caricamento CV</Label>
             <div className="flex flex-wrap gap-2">
               {SHORTCUTS.map((s) => (
@@ -279,9 +349,19 @@ function AnalisiPeriodoPage() {
           <div className="space-y-3">
             <Label>Filtri opzionali</Label>
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={onlyWithInfo} onCheckedChange={(c) => setOnlyWithInfo(!!c)} />
+              <label className={cn(
+                "flex items-center gap-2 text-sm",
+                analysisMode === "completa" ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+              )}>
+                <Checkbox
+                  checked={effectiveOnlyWithInfo}
+                  disabled={analysisMode === "completa"}
+                  onCheckedChange={(c) => setOnlyWithInfo(!!c)}
+                />
                 Solo candidati con dati estratti (esclude estrazioni fallite)
+                {analysisMode === "completa" && (
+                  <span className="text-xs text-muted-foreground">(disabilitato in modalità Completa)</span>
+                )}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox checked={onlyNotAnalyzed} onCheckedChange={(c) => setOnlyNotAnalyzed(!!c)} />
@@ -316,7 +396,9 @@ function AnalisiPeriodoPage() {
         <CardHeader>
           <CardTitle>2. Avvia analisi</CardTitle>
           <CardDescription>
-            L'analisi usa i dati già estratti — non rilegge i PDF. Delay di 1s tra candidati.
+            {analysisMode === "completa"
+              ? "L'IA rilegge ogni PDF prima di valutarlo. Delay di 2s tra candidati, più lento e costoso."
+              : "L'analisi usa i dati già estratti — non rilegge i PDF. Delay di 1s tra candidati."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

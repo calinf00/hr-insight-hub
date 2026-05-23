@@ -195,15 +195,22 @@ function UtentiPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString("it-IT")}</td>
                   <td className="px-4 py-3 text-right">
-                    {isHr ? (
-                      <Button size="sm" variant="outline" disabled={busyId === p.id || isMe} onClick={() => revokeHr(p.id)}>
-                        <UserX className="h-4 w-4" /> Revoca HR
-                      </Button>
-                    ) : (
-                      <Button size="sm" disabled={busyId === p.id} onClick={() => grantHr(p.id)}>
-                        <UserCheck className="h-4 w-4" /> Concedi HR
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {!isMe && (
+                        <Button size="sm" variant="ghost" disabled={resetBusy} onClick={() => openResetDialog(p.id)}>
+                          <KeyRound className="h-4 w-4" /> Reset password
+                        </Button>
+                      )}
+                      {isHr ? (
+                        <Button size="sm" variant="outline" disabled={busyId === p.id || isMe} onClick={() => revokeHr(p.id)}>
+                          <UserX className="h-4 w-4" /> Revoca HR
+                        </Button>
+                      ) : (
+                        <Button size="sm" disabled={busyId === p.id} onClick={() => grantHr(p.id)}>
+                          <UserCheck className="h-4 w-4" /> Concedi HR
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

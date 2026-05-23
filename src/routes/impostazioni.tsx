@@ -770,7 +770,7 @@ function SicurezzaAccountSection() {
   };
 
   return (
-    <section className="rounded-lg border border-border bg-card p-6">
+    <section id="sicurezza-account" className="rounded-lg border border-border bg-card p-6 scroll-mt-20">
       <div className="mb-4 flex items-center gap-2">
         <Lock className="h-4 w-4 text-primary" />
         <h2 className="text-lg font-semibold">Sicurezza account</h2>

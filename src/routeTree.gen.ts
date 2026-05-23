@@ -13,6 +13,7 @@ import { Route as UtentiRouteImport } from './routes/utenti'
 import { Route as UploadMultiploRouteImport } from './routes/upload-multiplo'
 import { Route as TalentPoolRouteImport } from './routes/talent-pool'
 import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as ProfiloRouteImport } from './routes/profilo'
 import { Route as PosizioniRouteImport } from './routes/posizioni'
 import { Route as ImpostazioniRouteImport } from './routes/impostazioni'
 import { Route as CandidatiRouteImport } from './routes/candidati'
@@ -39,6 +40,11 @@ const TalentPoolRoute = TalentPoolRouteImport.update({
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfiloRoute = ProfiloRouteImport.update({
+  id: '/profilo',
+  path: '/profilo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PosizioniRoute = PosizioniRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/profilo': typeof ProfiloRoute
   '/ranking': typeof RankingRoute
   '/talent-pool': typeof TalentPoolRoute
   '/upload-multiplo': typeof UploadMultiploRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/profilo': typeof ProfiloRoute
   '/ranking': typeof RankingRoute
   '/talent-pool': typeof TalentPoolRoute
   '/upload-multiplo': typeof UploadMultiploRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/candidati': typeof CandidatiRouteWithChildren
   '/impostazioni': typeof ImpostazioniRoute
   '/posizioni': typeof PosizioniRoute
+  '/profilo': typeof ProfiloRoute
   '/ranking': typeof RankingRoute
   '/talent-pool': typeof TalentPoolRoute
   '/upload-multiplo': typeof UploadMultiploRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/profilo'
     | '/ranking'
     | '/talent-pool'
     | '/upload-multiplo'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/profilo'
     | '/ranking'
     | '/talent-pool'
     | '/upload-multiplo'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/candidati'
     | '/impostazioni'
     | '/posizioni'
+    | '/profilo'
     | '/ranking'
     | '/talent-pool'
     | '/upload-multiplo'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   CandidatiRoute: typeof CandidatiRouteWithChildren
   ImpostazioniRoute: typeof ImpostazioniRoute
   PosizioniRoute: typeof PosizioniRoute
+  ProfiloRoute: typeof ProfiloRoute
   RankingRoute: typeof RankingRoute
   TalentPoolRoute: typeof TalentPoolRoute
   UploadMultiploRoute: typeof UploadMultiploRoute
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/ranking'
       fullPath: '/ranking'
       preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profilo': {
+      id: '/profilo'
+      path: '/profilo'
+      fullPath: '/profilo'
+      preLoaderRoute: typeof ProfiloRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/posizioni': {
@@ -273,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   CandidatiRoute: CandidatiRouteWithChildren,
   ImpostazioniRoute: ImpostazioniRoute,
   PosizioniRoute: PosizioniRoute,
+  ProfiloRoute: ProfiloRoute,
   RankingRoute: RankingRoute,
   TalentPoolRoute: TalentPoolRoute,
   UploadMultiploRoute: UploadMultiploRoute,

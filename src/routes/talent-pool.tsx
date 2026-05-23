@@ -1107,6 +1107,15 @@ function TalentPoolPage() {
                       >
                         {r.candidato.nome} {r.candidato.cognome}
                       </button>
+                      {isModificatoManualmente(r.estratte) && (
+                        <Badge
+                          className="ml-2 align-middle bg-blue-500/15 text-blue-700 border border-blue-500/30 dark:text-blue-400"
+                          title="Dati modificati manualmente"
+                        >
+                          <PenLine className="h-3 w-3 mr-1" />
+                          Modificato
+                        </Badge>
+                      )}
                       {r.candidato.nome === "In elaborazione..." && (
                         <Badge className="ml-2 bg-yellow-500/15 text-yellow-700 border border-yellow-500/30 dark:text-yellow-400">
                           ⚠ Dati incompleti

@@ -293,6 +293,9 @@ function TalentPoolPage() {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "data", dir: "desc" });
 
+  const [posizioneFilter, setPosizioneFilter] = useState<string>("");
+  const [macrocategoriaFilter, setMacrocategoriaFilter] = useState<string>("");
+
   // Talent search by posizione
   const [cercaPosId, setCercaPosId] = useState<string>("");
 

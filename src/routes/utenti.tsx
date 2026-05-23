@@ -293,6 +293,21 @@ function UtentiPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma revoca admin</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai rimuovendo i privilegi admin a {alertUser?.email}. Sei sicuro?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertUser(null)}>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRevokeAdmin}>Conferma</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

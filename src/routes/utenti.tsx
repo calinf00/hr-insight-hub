@@ -240,6 +240,7 @@ function UtentiPage() {
       }
       toast.success("Password reimpostata");
       closeResetDialog();
+      void loadLogs();
     } catch (err: any) {
       toast.error(err.message || "Errore durante il reset");
     } finally {

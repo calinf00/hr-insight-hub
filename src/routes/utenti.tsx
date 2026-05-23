@@ -56,6 +56,8 @@ function UtentiPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetBusy, setResetBusy] = useState(false);
   const [valError, setValError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertUser, setAlertUser] = useState<{ id: string; email: string } | null>(null);
 
   const load = async () => {
     setLoading(true);

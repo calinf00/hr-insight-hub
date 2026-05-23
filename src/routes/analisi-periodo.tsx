@@ -396,7 +396,9 @@ function AnalisiPeriodoPage() {
         <CardHeader>
           <CardTitle>2. Avvia analisi</CardTitle>
           <CardDescription>
-            L'analisi usa i dati già estratti — non rilegge i PDF. Delay di 1s tra candidati.
+            {analysisMode === "completa"
+              ? "L'IA rilegge ogni PDF prima di valutarlo. Delay di 2s tra candidati, più lento e costoso."
+              : "L'analisi usa i dati già estratti — non rilegge i PDF. Delay di 1s tra candidati."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

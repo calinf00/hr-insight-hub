@@ -92,6 +92,59 @@ function UtentiPage() {
     void load();
   };
 
+  const openResetDialog = (uid: string) => {
+    setSelectedUserId(uid);
+    setNewPassword("");
+    setConfirmPassword("");
+    setValError(null);
+    setDialogOpen(true);
+  };
+
+  const closeResetDialog = () => {
+    setDialogOpen(false);
+    setSelectedUserId(null);
+    setNewPassword("");
+    setConfirmPassword("");
+    setValError(null);
+  };
+
+  const handleReset = async () => {
+    if (!selectedUserId) return;
+    setValError(null);
+    if (newPassword.length < 8) {
+      setValError("La password deve essere di almeno 8 caratteri");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setValError("Le password non coincidono");
+      return;
+    }
+    setResetBusy(true);
+    try {
+      const { data: sessData } = await supabase.auth.getSession();
+      const token = sessData.session?.access_token;
+      if (!token) throw new Error("Sessione scaduta");
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: selectedUserId, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Errore durante il reset");
+      }
+      toast.success("Password reimpostata");
+      closeResetDialog();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante il reset");
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }

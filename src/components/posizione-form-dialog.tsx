@@ -29,6 +29,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const macrocategorie = [
+  { value: "direzione_lavori", label: "Direzione Lavori" },
+  { value: "progettazione", label: "Progettazione" },
+  { value: "architettura", label: "Architettura" },
+  { value: "strutturale", label: "Ingegneria Strutturale" },
+  { value: "impiantistica", label: "Ingegneria Impiantistica" },
+  { value: "sicurezza", label: "Sicurezza e Prevenzione" },
+  { value: "bim", label: "BIM Management" },
+  { value: "geologia", label: "Geologia e Ambiente" },
+  { value: "amministrazione", label: "Amministrazione e Contabilità" },
+  { value: "hr", label: "Risorse Umane" },
+  { value: "commerciale", label: "Commerciale e Marketing" },
+  { value: "altro", label: "Altro" },
+] as const;
+
 const titoliStudio = [
   { value: "nessuno", label: "Nessuno" },
   { value: "diploma", label: "Diploma" },
@@ -39,6 +54,7 @@ const titoliStudio = [
 
 const schema = z.object({
   titolo: z.string().trim().min(1, "Il titolo è obbligatorio").max(200),
+  macrocategoria: z.string().min(1, "La macrocategoria è obbligatoria"),
   reparto: z.string().trim().max(120).optional().or(z.literal("")),
   descrizione: z.string().trim().min(1, "La descrizione è obbligatoria").max(5000),
   competenze: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -75,6 +91,7 @@ export function PosizioneFormDialog({ open, onOpenChange, posizione }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       titolo: "",
+      macrocategoria: "",
       reparto: "",
       descrizione: "",
       competenze: "",
@@ -90,6 +107,7 @@ export function PosizioneFormDialog({ open, onOpenChange, posizione }: Props) {
     if (open) {
       form.reset({
         titolo: posizione?.titolo ?? "",
+        macrocategoria: posizione?.macrocategoria ?? "",
         reparto: posizione?.reparto ?? "",
         descrizione: posizione?.descrizione ?? "",
         competenze: posizione?.competenze ?? "",
@@ -106,6 +124,7 @@ export function PosizioneFormDialog({ open, onOpenChange, posizione }: Props) {
     mutationFn: async (values: FormValues) => {
       const payload = {
         titolo: values.titolo.trim(),
+        macrocategoria: values.macrocategoria,
         reparto: values.reparto?.trim() || null,
         descrizione: values.descrizione.trim(),
         competenze: values.competenze?.trim() || null,
@@ -159,6 +178,26 @@ export function PosizioneFormDialog({ open, onOpenChange, posizione }: Props) {
             <Input id="titolo" {...form.register("titolo")} />
             {form.formState.errors.titolo && (
               <p className="text-xs text-destructive">{form.formState.errors.titolo.message}</p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Macrocategoria *</Label>
+            <Select
+              value={form.watch("macrocategoria")}
+              onValueChange={(v) => form.setValue("macrocategoria", v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleziona una macrocategoria…" />
+              </SelectTrigger>
+              <SelectContent>
+                {macrocategorie.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.macrocategoria && (
+              <p className="text-xs text-destructive">{form.formState.errors.macrocategoria.message}</p>
             )}
           </div>
 

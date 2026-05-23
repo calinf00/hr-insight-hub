@@ -214,6 +214,7 @@ export type Database = {
           id: string
           lingue: string | null
           luogo: string | null
+          macrocategoria: string | null
           reparto: string | null
           stato: Database["public"]["Enums"]["posizione_stato"]
           titolo: string
@@ -228,6 +229,7 @@ export type Database = {
           id?: string
           lingue?: string | null
           luogo?: string | null
+          macrocategoria?: string | null
           reparto?: string | null
           stato?: Database["public"]["Enums"]["posizione_stato"]
           titolo: string
@@ -242,6 +244,7 @@ export type Database = {
           id?: string
           lingue?: string | null
           luogo?: string | null
+          macrocategoria?: string | null
           reparto?: string | null
           stato?: Database["public"]["Enums"]["posizione_stato"]
           titolo?: string

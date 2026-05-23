@@ -248,6 +248,15 @@ function UtentiPage() {
                           <UserCheck className="h-4 w-4" /> Concedi HR
                         </Button>
                       )}
+                      {isAdminUser ? (
+                        <Button size="sm" variant="destructive" disabled={busyId === p.id || isMe} onClick={() => openRevokeAdminAlert(p.id, p.email)}>
+                          <ShieldMinus className="h-4 w-4" /> Revoca Admin
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="secondary" disabled={busyId === p.id || isMe} onClick={() => grantAdmin(p.id)}>
+                          <ShieldCheck className="h-4 w-4" /> Promuovi Admin
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

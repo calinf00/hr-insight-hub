@@ -51,10 +51,13 @@ function AnalisiPeriodoPage() {
   const [posizioneId, setPosizioneId] = useState<string>("");
   const [from, setFrom] = useState<Date | undefined>(undefined);
   const [to, setTo] = useState<Date | undefined>(undefined);
+  const [analysisMode, setAnalysisMode] = useState<"veloce" | "completa">("veloce");
   const [onlyWithInfo, setOnlyWithInfo] = useState(true);
   const [onlyNotAnalyzed, setOnlyNotAnalyzed] = useState(true);
   const [lingueFilter, setLingueFilter] = useState<string>("");
   const [minEsperienza, setMinEsperienza] = useState<string>("");
+
+  const effectiveOnlyWithInfo = analysisMode === "completa" ? false : onlyWithInfo;
 
   const [progress, setProgress] = useState<ProgressRow[]>([]);
   const [running, setRunning] = useState(false);

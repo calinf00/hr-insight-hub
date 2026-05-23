@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { History, KeyRound, Loader2, Search, ShieldAlert, ShieldCheck, ShieldMinus, UserCheck, UserX } from "lucide-react";
+import { History, KeyRound, Loader2, Search, ShieldAlert, ShieldCheck, ShieldMinus, Trash2, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";

@@ -1286,6 +1286,12 @@ function TalentPoolPage() {
                 <SheetDescription>
                   Candidatura del {fmtDate(openCandidato.candidato.created_at)}
                 </SheetDescription>
+                {isModificatoManualmente(openCandidato.estratte) && (
+                  <Badge className="mt-2 w-fit bg-blue-500/15 text-blue-700 border border-blue-500/30 dark:text-blue-400">
+                    <PenLine className="h-3 w-3 mr-1" />
+                    Dati modificati manualmente
+                  </Badge>
+                )}
               </SheetHeader>
 
               <div className="space-y-6 mt-6">

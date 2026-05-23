@@ -2,3 +2,6 @@ project_id = "kkbhqyyqiunfzdxwevfx"
 
 [functions.analizza-cv]
 verify_jwt = true
+
+[functions.admin-reset-password]
+verify_jwt = true

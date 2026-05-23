@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Trash2, Save, Settings as SettingsIcon, ArrowUp, ArrowDown,
-  Sliders, Download, FileSpreadsheet, FileText, Wrench, RefreshCw, AlertTriangle, Info, Lock,
+  Sliders, Download, FileSpreadsheet, FileText, Wrench, RefreshCw, AlertTriangle, Info, Lock, Loader2,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";

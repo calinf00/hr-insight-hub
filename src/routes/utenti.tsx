@@ -149,6 +149,7 @@ function UtentiPage() {
     await logAction("grant_hr", uid);
     toast.success("Accesso HR concesso");
     void load();
+    void loadLogs();
   };
 
   const revokeHr = async (uid: string) => {

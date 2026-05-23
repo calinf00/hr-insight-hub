@@ -416,6 +416,14 @@ function TalentPoolPage() {
     return Array.from(s).sort();
   }, [rows]);
 
+  const tutteMacrocategorie = useMemo(() => {
+    const s = new Set<string>();
+    for (const p of posizioni ?? []) {
+      if (p.macrocategoria?.trim()) s.add(p.macrocategoria.trim());
+    }
+    return Array.from(s).sort();
+  }, [posizioni]);
+
   // Filtered + sorted
   const filtered: Row[] = useMemo(() => {
     const q = search.trim().toLowerCase();

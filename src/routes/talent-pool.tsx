@@ -512,6 +512,9 @@ function TalentPoolPage() {
     dataFrom,
     dataTo,
     tagFilter,
+    posizioneFilter,
+    macrocategoriaFilter,
+    posizioni,
     sort,
   ]);
 

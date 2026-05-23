@@ -171,6 +171,7 @@ function UtentiPage() {
     await logAction("grant_admin", uid);
     toast.success("Utente promosso ad admin");
     void load();
+    void loadLogs();
   };
 
   const openRevokeAdminAlert = (uid: string, email: string) => {

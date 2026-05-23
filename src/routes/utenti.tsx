@@ -1,11 +1,14 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, UserCheck, UserX } from "lucide-react";
+import { KeyRound, Loader2, ShieldAlert, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/utenti")({
   beforeLoad: async () => {
@@ -37,6 +40,12 @@ function UtentiPage() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [meId, setMeId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetBusy, setResetBusy] = useState(false);
+  const [valError, setValError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -81,6 +90,59 @@ function UtentiPage() {
     if (error) { toast.error("Impossibile rimuovere l'accesso"); return; }
     toast.success("Accesso HR rimosso");
     void load();
+  };
+
+  const openResetDialog = (uid: string) => {
+    setSelectedUserId(uid);
+    setNewPassword("");
+    setConfirmPassword("");
+    setValError(null);
+    setDialogOpen(true);
+  };
+
+  const closeResetDialog = () => {
+    setDialogOpen(false);
+    setSelectedUserId(null);
+    setNewPassword("");
+    setConfirmPassword("");
+    setValError(null);
+  };
+
+  const handleReset = async () => {
+    if (!selectedUserId) return;
+    setValError(null);
+    if (newPassword.length < 8) {
+      setValError("La password deve essere di almeno 8 caratteri");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setValError("Le password non coincidono");
+      return;
+    }
+    setResetBusy(true);
+    try {
+      const { data: sessData } = await supabase.auth.getSession();
+      const token = sessData.session?.access_token;
+      if (!token) throw new Error("Sessione scaduta");
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: selectedUserId, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Errore durante il reset");
+      }
+      toast.success("Password reimpostata");
+      closeResetDialog();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante il reset");
+    } finally {
+      setResetBusy(false);
+    }
   };
 
   if (loading) {
@@ -133,15 +195,22 @@ function UtentiPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString("it-IT")}</td>
                   <td className="px-4 py-3 text-right">
-                    {isHr ? (
-                      <Button size="sm" variant="outline" disabled={busyId === p.id || isMe} onClick={() => revokeHr(p.id)}>
-                        <UserX className="h-4 w-4" /> Revoca HR
-                      </Button>
-                    ) : (
-                      <Button size="sm" disabled={busyId === p.id} onClick={() => grantHr(p.id)}>
-                        <UserCheck className="h-4 w-4" /> Concedi HR
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {!isMe && (
+                        <Button size="sm" variant="ghost" disabled={resetBusy} onClick={() => openResetDialog(p.id)}>
+                          <KeyRound className="h-4 w-4" /> Reset password
+                        </Button>
+                      )}
+                      {isHr ? (
+                        <Button size="sm" variant="outline" disabled={busyId === p.id || isMe} onClick={() => revokeHr(p.id)}>
+                          <UserX className="h-4 w-4" /> Revoca HR
+                        </Button>
+                      ) : (
+                        <Button size="sm" disabled={busyId === p.id} onClick={() => grantHr(p.id)}>
+                          <UserCheck className="h-4 w-4" /> Concedi HR
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -152,6 +221,31 @@ function UtentiPage() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeResetDialog(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nuova password</Label>
+              <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimo 8 caratteri" minLength={8} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Conferma password</Label>
+              <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Ripeti la password" />
+            </div>
+            {valError && <p className="text-sm text-destructive">{valError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={closeResetDialog} disabled={resetBusy}>Annulla</Button>
+              <Button onClick={handleReset} disabled={resetBusy || !newPassword || !confirmPassword}>
+                {resetBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Conferma reset"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

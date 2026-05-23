@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
 
     const { data: targetUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
     if (getUserError) {
-      return jsonResponse({ error: getUserError.message }, 400);
+      console.error("admin-reset-password getUserById:", getUserError);
+      return jsonResponse({ error: "Impossibile reimpostare la password" }, 400);
     }
 
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -84,7 +85,8 @@ Deno.serve(async (req) => {
     });
 
     if (updateError) {
-      return jsonResponse({ error: updateError.message }, 400);
+      console.error("admin-reset-password updateUser:", updateError);
+      return jsonResponse({ error: "Impossibile reimpostare la password" }, 400);
     }
 
     // Recupera email admin
@@ -101,6 +103,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true }, 200);
   } catch (err: any) {
     console.error("admin-reset-password error:", err);
-    return jsonResponse({ error: err.message || "Internal server error" }, 500);
+    return jsonResponse({ error: "Errore durante il reset" }, 500);
   }
 });

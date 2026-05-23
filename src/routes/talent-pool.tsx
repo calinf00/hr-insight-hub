@@ -1051,34 +1051,32 @@ function TalentPoolPage() {
 
           <div className="grid gap-3 md:grid-cols-4">
             <div>
-              <Label className="text-xs">Titolo di studio</Label>
-              <Select value={titoloStudio} onValueChange={setTitoloStudio}>
+              <Label className="text-xs">Posizione candidata</Label>
+              <Select value={posizioneFilter} onValueChange={setPosizioneFilter}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Tutte le posizioni" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tutti">Tutti</SelectItem>
-                  {tuttiTitoli.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
+                  <SelectItem value="">Tutte le posizioni</SelectItem>
+                  {(posizioni ?? []).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.titolo}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Stato candidato</Label>
-              <Select
-                value={statoFilter}
-                onValueChange={(v) => setStatoFilter(v as StatoPool | "tutti")}
-              >
+              <Label className="text-xs">Macrocategoria</Label>
+              <Select value={macrocategoriaFilter} onValueChange={setMacrocategoriaFilter}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Tutte" />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATI.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
+                  <SelectItem value="">Tutte</SelectItem>
+                  {tutteMacrocategorie.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
                     </SelectItem>
                   ))}
                 </SelectContent>

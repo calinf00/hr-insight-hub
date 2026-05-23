@@ -221,6 +221,31 @@ function UtentiPage() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeResetDialog(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nuova password</Label>
+              <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimo 8 caratteri" minLength={8} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Conferma password</Label>
+              <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Ripeti la password" />
+            </div>
+            {valError && <p className="text-sm text-destructive">{valError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={closeResetDialog} disabled={resetBusy}>Annulla</Button>
+              <Button onClick={handleReset} disabled={resetBusy || !newPassword || !confirmPassword}>
+                {resetBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Conferma reset"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

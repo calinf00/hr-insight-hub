@@ -1362,39 +1362,239 @@ function TalentPoolPage() {
 
                 {/* Estratti */}
                 <div>
-                  <h3 className="font-semibold text-sm mb-2">Dati estratti dal CV</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <Info label="Email" value={openCandidato.estratte?.email} />
-                    <Info label="Telefono" value={openCandidato.estratte?.telefono} />
-                    <Info label="Residenza" value={openCandidato.estratte?.residenza} />
-                    <Info label="Nazionalità" value={openCandidato.estratte?.nazionalita} />
-                    <Info label="Titolo di studio" value={openCandidato.estratte?.titolo_studio} />
-                    <Info label="Istituto" value={openCandidato.estratte?.istituto} />
-                    <Info label="Anni esperienza" value={openCandidato.estratte?.anni_esperienza} />
-                    <Info label="Ultimo ruolo" value={openCandidato.estratte?.ultimo_ruolo} />
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-sm">Dati estratti dal CV</h3>
+                    {!editEstratte ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => startEdit(openCandidato.candidato, openCandidato.estratte)}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Modifica dati
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => {
+                          setEditEstratte(false);
+                          setEditForm(null);
+                        }}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Annulla
+                      </Button>
+                    )}
                   </div>
-                  {(openCandidato.estratte?.competenze_tecniche?.length ?? 0) > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs text-muted-foreground mb-1">Competenze</div>
-                      <div className="flex flex-wrap gap-1">
-                        {openCandidato.estratte?.competenze_tecniche?.map((c, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
-                            {c}
-                          </Badge>
+
+                  {!editEstratte && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <Info label="Email" value={openCandidato.estratte?.email} />
+                        <Info label="Telefono" value={openCandidato.estratte?.telefono} />
+                        <Info label="Residenza" value={openCandidato.estratte?.residenza} />
+                        <Info label="Nazionalità" value={openCandidato.estratte?.nazionalita} />
+                        <Info label="Titolo di studio" value={openCandidato.estratte?.titolo_studio} />
+                        <Info label="Istituto" value={openCandidato.estratte?.istituto} />
+                        <Info label="Anni esperienza" value={openCandidato.estratte?.anni_esperienza} />
+                        <Info label="Ultimo ruolo" value={openCandidato.estratte?.ultimo_ruolo} />
+                      </div>
+                      {(openCandidato.estratte?.competenze_tecniche?.length ?? 0) > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs text-muted-foreground mb-1">Competenze</div>
+                          <div className="flex flex-wrap gap-1">
+                            {openCandidato.estratte?.competenze_tecniche?.map((c, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {(openCandidato.estratte?.lingue?.length ?? 0) > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs text-muted-foreground mb-1">Lingue</div>
+                          <div className="flex flex-wrap gap-1">
+                            {openCandidato.estratte?.lingue?.map((l, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {l.lingua}
+                                {l.livello ? ` (${l.livello})` : ""}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {editEstratte && editForm && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nome</Label>
+                          <Input
+                            value={editForm.nome}
+                            onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Cognome</Label>
+                          <Input
+                            value={editForm.cognome}
+                            onChange={(e) => setEditForm({ ...editForm, cognome: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Email</Label>
+                          <Input
+                            value={editForm.email}
+                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Telefono</Label>
+                          <Input
+                            value={editForm.telefono}
+                            onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Residenza</Label>
+                          <Input
+                            value={editForm.residenza}
+                            onChange={(e) => setEditForm({ ...editForm, residenza: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nazionalità</Label>
+                          <Input
+                            value={editForm.nazionalita}
+                            onChange={(e) => setEditForm({ ...editForm, nazionalita: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Titolo di studio</Label>
+                          <Input
+                            value={editForm.titolo_studio}
+                            onChange={(e) => setEditForm({ ...editForm, titolo_studio: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Istituto</Label>
+                          <Input
+                            value={editForm.istituto}
+                            onChange={(e) => setEditForm({ ...editForm, istituto: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Anni esperienza</Label>
+                          <Input
+                            value={editForm.anni_esperienza}
+                            onChange={(e) => setEditForm({ ...editForm, anni_esperienza: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Ultimo ruolo</Label>
+                          <Input
+                            value={editForm.ultimo_ruolo}
+                            onChange={(e) => setEditForm({ ...editForm, ultimo_ruolo: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          Competenze tecniche (separate da virgola o a capo)
+                        </Label>
+                        <Textarea
+                          rows={3}
+                          value={editForm.competenze_tecniche}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, competenze_tecniche: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Lingue</Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() =>
+                              setEditForm({
+                                ...editForm,
+                                lingue: [...editForm.lingue, { lingua: "", livello: "" }],
+                              })
+                            }
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Aggiungi
+                          </Button>
+                        </div>
+                        {editForm.lingue.length === 0 && (
+                          <p className="text-xs text-muted-foreground">Nessuna lingua.</p>
+                        )}
+                        {editForm.lingue.map((l, i) => (
+                          <div key={i} className="flex gap-2">
+                            <Input
+                              placeholder="Lingua"
+                              value={l.lingua}
+                              onChange={(e) => {
+                                const next = [...editForm.lingue];
+                                next[i] = { ...next[i], lingua: e.target.value };
+                                setEditForm({ ...editForm, lingue: next });
+                              }}
+                            />
+                            <Input
+                              placeholder="Livello"
+                              value={l.livello ?? ""}
+                              onChange={(e) => {
+                                const next = [...editForm.lingue];
+                                next[i] = { ...next[i], livello: e.target.value };
+                                setEditForm({ ...editForm, lingue: next });
+                              }}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const next = editForm.lingue.filter((_, idx) => idx !== i);
+                                setEditForm({ ...editForm, lingue: next });
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-                  {(openCandidato.estratte?.lingue?.length ?? 0) > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs text-muted-foreground mb-1">Lingue</div>
-                      <div className="flex flex-wrap gap-1">
-                        {openCandidato.estratte?.lingue?.map((l, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {l.lingua}
-                            {l.livello ? ` (${l.livello})` : ""}
-                          </Badge>
-                        ))}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          className="flex-1"
+                          disabled={saveEstratteMutation.isPending}
+                          onClick={() =>
+                            saveEstratteMutation.mutate({
+                              id: openCandidato.candidato.id,
+                              current: openCandidato.estratte,
+                            })
+                          }
+                        >
+                          {saveEstratteMutation.isPending ? "Salvataggio…" : "Salva modifiche"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setEditEstratte(false);
+                            setEditForm(null);
+                          }}
+                        >
+                          Annulla
+                        </Button>
                       </div>
                     </div>
                   )}

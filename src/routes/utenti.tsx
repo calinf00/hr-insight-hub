@@ -123,6 +123,8 @@ function UtentiPage() {
 
   useEffect(() => { void load(); }, []);
 
+  const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
+
   const filteredProfiles = profiles.filter((p) => {
     const rs = rolesOf(p.id);
     const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase());

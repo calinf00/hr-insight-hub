@@ -1832,6 +1832,215 @@ function TalentPoolPage() {
         </SheetContent>
       </Sheet>
 
+      {/* Inserimento manuale dialog */}
+      <Dialog
+        open={manualOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            setManualOpen(false);
+            setManualCandidato(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Inserimento manuale dati CV — {manualCandidato?.nome} {manualCandidato?.cognome}
+            </DialogTitle>
+            <DialogDescription>
+              Compila i campi che riesci a ricavare dal CV. I dati saranno marcati come
+              inseriti manualmente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">
+                  Nome <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={manualForm.nome}
+                  onChange={(e) => setManualForm({ ...manualForm, nome: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">
+                  Cognome <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={manualForm.cognome}
+                  onChange={(e) => setManualForm({ ...manualForm, cognome: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Email</Label>
+                <Input
+                  type="email"
+                  value={manualForm.email}
+                  onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Telefono</Label>
+                <Input
+                  value={manualForm.telefono}
+                  onChange={(e) => setManualForm({ ...manualForm, telefono: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Residenza</Label>
+                <Input
+                  value={manualForm.residenza}
+                  onChange={(e) => setManualForm({ ...manualForm, residenza: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nazionalità</Label>
+                <Input
+                  value={manualForm.nazionalita}
+                  onChange={(e) => setManualForm({ ...manualForm, nazionalita: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Titolo di studio</Label>
+                <Select
+                  value={manualForm.titolo_studio}
+                  onValueChange={(v) =>
+                    setManualForm({
+                      ...manualForm,
+                      titolo_studio: v as (typeof TITOLI_STUDIO_OPTIONS)[number],
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TITOLI_STUDIO_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Istituto</Label>
+                <Input
+                  value={manualForm.istituto}
+                  onChange={(e) => setManualForm({ ...manualForm, istituto: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Anni di esperienza</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={manualForm.anni_esperienza}
+                  onChange={(e) =>
+                    setManualForm({ ...manualForm, anni_esperienza: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Ultimo ruolo</Label>
+                <Input
+                  value={manualForm.ultimo_ruolo}
+                  onChange={(e) => setManualForm({ ...manualForm, ultimo_ruolo: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Competenze tecniche (una per riga)</Label>
+              <Textarea
+                rows={4}
+                value={manualForm.competenze_tecniche}
+                onChange={(e) =>
+                  setManualForm({ ...manualForm, competenze_tecniche: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Lingue</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() =>
+                    setManualForm({
+                      ...manualForm,
+                      lingue: [...manualForm.lingue, { lingua: "", livello: "" }],
+                    })
+                  }
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Aggiungi lingua
+                </Button>
+              </div>
+              {manualForm.lingue.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nessuna lingua inserita.</p>
+              )}
+              {manualForm.lingue.map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    placeholder="Lingua (es. Inglese)"
+                    value={l.lingua}
+                    onChange={(e) => {
+                      const next = [...manualForm.lingue];
+                      next[i] = { ...next[i], lingua: e.target.value };
+                      setManualForm({ ...manualForm, lingue: next });
+                    }}
+                  />
+                  <Input
+                    placeholder="Livello (es. B2)"
+                    value={l.livello ?? ""}
+                    onChange={(e) => {
+                      const next = [...manualForm.lingue];
+                      next[i] = { ...next[i], livello: e.target.value };
+                      setManualForm({ ...manualForm, lingue: next });
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() =>
+                      setManualForm({
+                        ...manualForm,
+                        lingue: manualForm.lingue.filter((_, idx) => idx !== i),
+                      })
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setManualOpen(false);
+                setManualCandidato(null);
+              }}
+            >
+              Annulla
+            </Button>
+            <Button
+              disabled={manualSaveMutation.isPending}
+              onClick={() => manualSaveMutation.mutate()}
+            >
+              {manualSaveMutation.isPending ? "Salvataggio…" : "Salva dati"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Associa dialog */}
       <Dialog open={associaOpen} onOpenChange={setAssociaOpen}>
         <DialogContent>

@@ -104,6 +104,32 @@ function UtentiPage() {
     void load();
   };
 
+  const grantAdmin = async (uid: string) => {
+    setBusyId(uid);
+    const { error } = await supabase.from("user_roles").insert({ user_id: uid, role: "admin" });
+    setBusyId(null);
+    if (error) { toast.error("Impossibile promuovere ad admin"); return; }
+    toast.success("Utente promosso ad admin");
+    void load();
+  };
+
+  const openRevokeAdminAlert = (uid: string, email: string) => {
+    setAlertUser({ id: uid, email });
+    setAlertOpen(true);
+  };
+
+  const confirmRevokeAdmin = async () => {
+    if (!alertUser) return;
+    setBusyId(alertUser.id);
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", alertUser.id).eq("role", "admin");
+    setBusyId(null);
+    setAlertOpen(false);
+    setAlertUser(null);
+    if (error) { toast.error("Impossibile revocare admin"); return; }
+    toast.success("Privilegi admin revocati");
+    void load();
+  };
+
   const openResetDialog = (uid: string) => {
     setSelectedUserId(uid);
     setNewPassword("");

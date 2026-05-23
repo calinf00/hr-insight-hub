@@ -74,6 +74,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Forbidden: admin role required" }, 403);
     }
 
+    const { data: targetUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (getUserError) {
+      return jsonResponse({ error: getUserError.message }, 400);
+    }
+
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: newPassword,
     });
@@ -81,6 +86,17 @@ Deno.serve(async (req) => {
     if (updateError) {
       return jsonResponse({ error: updateError.message }, 400);
     }
+
+    // Recupera email admin
+    const { data: callerUser } = await supabaseAdmin.auth.admin.getUserById(callerUserId);
+
+    await supabaseAdmin.from("admin_log").insert({
+      admin_id: callerUserId,
+      admin_email: callerUser?.user?.email ?? null,
+      action: "reset_password",
+      target_user_id: userId,
+      target_email: targetUser?.user?.email ?? null,
+    });
 
     return jsonResponse({ success: true }, 200);
   } catch (err: any) {

@@ -91,6 +91,18 @@ function UtentiPage() {
       setRoles((rs as RoleRow[]) ?? []);
     }
     setLoading(false);
+    if (admin) void loadLogs();
+  };
+
+  const loadLogs = async () => {
+    setLogsLoading(true);
+    const { data } = await supabase
+      .from("admin_log")
+      .select("id, admin_id, admin_email, action, target_user_id, target_email, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setLogs((data as LogRow[]) ?? []);
+    setLogsLoading(false);
   };
 
   useEffect(() => { void load(); }, []);

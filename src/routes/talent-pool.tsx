@@ -1063,12 +1063,15 @@ function TalentPoolPage() {
           <div className="grid gap-3 md:grid-cols-4">
             <div>
               <Label className="text-xs">Posizione candidata</Label>
-              <Select value={posizioneFilter} onValueChange={setPosizioneFilter}>
+              <Select
+                value={posizioneFilter || "__all__"}
+                onValueChange={(v) => setPosizioneFilter(v === "__all__" ? "" : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Tutte le posizioni" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tutte le posizioni</SelectItem>
+                  <SelectItem value="__all__">Tutte le posizioni</SelectItem>
                   {(posizioni ?? []).map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.titolo}
@@ -1079,12 +1082,15 @@ function TalentPoolPage() {
             </div>
             <div>
               <Label className="text-xs">Macrocategoria</Label>
-              <Select value={macrocategoriaFilter} onValueChange={setMacrocategoriaFilter}>
+              <Select
+                value={macrocategoriaFilter || "__all__"}
+                onValueChange={(v) => setMacrocategoriaFilter(v === "__all__" ? "" : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Tutte" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tutte</SelectItem>
+                  <SelectItem value="__all__">Tutte</SelectItem>
                   {tutteMacrocategorie.map((m) => (
                     <SelectItem key={m} value={m}>
                       {m}

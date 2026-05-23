@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Briefcase, Users, Sparkles, Settings, LogOut, UserCog, UploadCloud, Trophy, Database, CalendarRange } from "lucide-react";
+import { LayoutDashboard, Briefcase, Users, Sparkles, Settings, LogOut, UserCog, UploadCloud, Trophy, Database, CalendarRange, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {

@@ -119,13 +119,13 @@ function PosizioniPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
                   Caricamento…
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center">
+                <TableCell colSpan={6} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Briefcase className="h-8 w-8 opacity-50" />
                     <p className="text-sm">Nessuna posizione da mostrare</p>
@@ -136,6 +136,13 @@ function PosizioniPage() {
               filtered.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.titolo}</TableCell>
+                  <TableCell>
+                    {p.macrocategoria ? (
+                      <Badge variant="secondary">{p.macrocategoria}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{p.reparto || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(p.created_at)}</TableCell>
                   <TableCell>

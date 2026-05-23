@@ -432,6 +432,11 @@ function UtentiPage() {
                           <ShieldCheck className="h-4 w-4" /> Promuovi Admin
                         </Button>
                       )}
+                      {!isHr && !isAdminUser && (
+                        <Button size="sm" variant="destructive" disabled={isMe || deleteBusy} onClick={() => openDeleteAlert(p.id, p.email)}>
+                          <Trash2 className="h-4 w-4" /> Elimina richiesta
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

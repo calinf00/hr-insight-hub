@@ -446,6 +446,19 @@ function TalentPoolPage() {
       if (tagFilter.length > 0) {
         if (!tagFilter.every((t) => r.tags.includes(t))) return false;
       }
+      if (posizioneFilter) {
+        const hasAnalisi = r.allAnalisi.some((a) => a.posizioni_ids.includes(posizioneFilter));
+        if (!hasAnalisi) return false;
+      }
+      if (macrocategoriaFilter) {
+        const hasMacrocategoria = r.allAnalisi.some((a) =>
+          a.posizioni_ids.some((pid) => {
+            const pos = posizioni?.find((p) => p.id === pid);
+            return pos?.macrocategoria === macrocategoriaFilter;
+          })
+        );
+        if (!hasMacrocategoria) return false;
+      }
       if (from || to) {
         const d = new Date(r.candidato.created_at);
         if (from && d < from) return false;

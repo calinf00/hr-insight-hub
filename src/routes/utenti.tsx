@@ -40,6 +40,12 @@ function UtentiPage() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [meId, setMeId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetBusy, setResetBusy] = useState(false);
+  const [valError, setValError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);

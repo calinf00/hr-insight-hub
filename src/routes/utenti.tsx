@@ -160,6 +160,7 @@ function UtentiPage() {
     await logAction("revoke_hr", uid);
     toast.success("Accesso HR rimosso");
     void load();
+    void loadLogs();
   };
 
   const grantAdmin = async (uid: string) => {

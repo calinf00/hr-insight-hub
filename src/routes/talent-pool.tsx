@@ -900,7 +900,7 @@ function TalentPoolPage() {
                   {posizioniAperte.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.titolo}
-                      {p.reparto ? ` — ${p.reparto}` : ""}
+                      {p.macrocategoria ? ` — ${p.macrocategoria}` : ""}
                     </SelectItem>
                   ))}
                   {posizioniAperte.length === 0 && (

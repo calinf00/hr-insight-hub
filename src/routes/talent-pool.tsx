@@ -1256,7 +1256,35 @@ function TalentPoolPage() {
                             <RefreshCw className="h-3 w-3 mr-1" />
                             Riprova
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => openManualDialog(r.candidato)}
+                          >
+                            <FormInput className="h-3 w-3 mr-1" />
+                            Compila manualmente
+                          </Button>
                         </span>
+                      )}
+                      {r.candidato.stato_analisi !== "errore_estrazione" &&
+                        !isCompletatoManualmente(r.candidato) &&
+                        isEstratteVuoto(r.estratte) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs ml-2 align-middle"
+                            onClick={() => openManualDialog(r.candidato)}
+                          >
+                            <FormInput className="h-3 w-3 mr-1" />
+                            Compila manualmente
+                          </Button>
+                        )}
+                      {isCompletatoManualmente(r.candidato) && (
+                        <Badge className="ml-2 align-middle bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Compilato manualmente
+                        </Badge>
                       )}
                       {r.candidato.note_errore && r.candidato.stato_analisi === "errore_estrazione" && (
                         <div className="text-xs text-muted-foreground mt-1">{r.candidato.note_errore}</div>

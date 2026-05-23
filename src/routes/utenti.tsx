@@ -71,6 +71,9 @@ function UtentiPage() {
   const [valError, setValError] = useState<string | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertUser, setAlertUser] = useState<{ id: string; email: string } | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteUser, setDeleteUser] = useState<{ id: string; email: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "hr" | "pending">("all");
   const [lastSignIns, setLastSignIns] = useState<Record<string, string>>({});

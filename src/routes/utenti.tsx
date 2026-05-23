@@ -1,9 +1,11 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { History, KeyRound, Loader2, ShieldAlert, ShieldCheck, ShieldMinus, UserCheck, UserX } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { History, KeyRound, Loader2, Search, ShieldAlert, ShieldCheck, ShieldMinus, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { getUserLastSignIns } from "@/lib/users.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

@@ -1,0 +1,1 @@
+ALTER TABLE public.posizioni ADD COLUMN macrocategoria TEXT;

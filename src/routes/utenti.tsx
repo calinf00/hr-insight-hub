@@ -57,6 +57,8 @@ function UtentiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [logs, setLogs] = useState<LogRow[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [meId, setMeId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -96,6 +96,15 @@ function UtentiPage() {
       ]);
       setProfiles((ps as ProfileRow[]) ?? []);
       setRoles((rs as RoleRow[]) ?? []);
+
+      try {
+        const users = await getLastSignIns();
+        const map: Record<string, string> = {};
+        users.forEach((u) => { if (u.last_sign_in_at) map[u.id] = u.last_sign_in_at; });
+        setLastSignIns(map);
+      } catch {
+        // ignore
+      }
     }
     setLoading(false);
     if (admin) void loadLogs();

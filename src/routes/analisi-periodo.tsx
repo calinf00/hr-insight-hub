@@ -349,9 +349,19 @@ function AnalisiPeriodoPage() {
           <div className="space-y-3">
             <Label>Filtri opzionali</Label>
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={onlyWithInfo} onCheckedChange={(c) => setOnlyWithInfo(!!c)} />
+              <label className={cn(
+                "flex items-center gap-2 text-sm",
+                analysisMode === "completa" ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+              )}>
+                <Checkbox
+                  checked={effectiveOnlyWithInfo}
+                  disabled={analysisMode === "completa"}
+                  onCheckedChange={(c) => setOnlyWithInfo(!!c)}
+                />
                 Solo candidati con dati estratti (esclude estrazioni fallite)
+                {analysisMode === "completa" && (
+                  <span className="text-xs text-muted-foreground">(disabilitato in modalità Completa)</span>
+                )}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox checked={onlyNotAnalyzed} onCheckedChange={(c) => setOnlyNotAnalyzed(!!c)} />

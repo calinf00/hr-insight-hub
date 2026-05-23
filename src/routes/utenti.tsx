@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { History, KeyRound, Loader2, Search, ShieldAlert, ShieldCheck, ShieldMinus, UserCheck, UserX } from "lucide-react";
+import { History, KeyRound, Loader2, Search, ShieldAlert, ShieldCheck, ShieldMinus, Trash2, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -71,6 +71,9 @@ function UtentiPage() {
   const [valError, setValError] = useState<string | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertUser, setAlertUser] = useState<{ id: string; email: string } | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteUser, setDeleteUser] = useState<{ id: string; email: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "hr" | "pending">("all");
   const [lastSignIns, setLastSignIns] = useState<Record<string, string>>({});
@@ -157,13 +160,14 @@ function UtentiPage() {
       case "grant_admin": return "Promosso Admin";
       case "revoke_admin": return "Rimosso da Admin";
       case "reset_password": return "Password reimpostata";
+      case "delete_user": return "Account eliminato";
       default: return action;
     }
   };
 
   const actionBadgeVariant = (action: string): "default" | "secondary" | "destructive" | "outline" => {
     if (action.startsWith("grant_")) return "secondary";
-    if (action.startsWith("revoke_")) return "destructive";
+    if (action.startsWith("revoke_") || action === "delete_user") return "destructive";
     return "default";
   };
 
@@ -289,6 +293,42 @@ function UtentiPage() {
     }
   };
 
+  const openDeleteAlert = (uid: string, email: string) => {
+    setDeleteUser({ id: uid, email });
+    setDeleteOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUser) return;
+    const targetId = deleteUser.id;
+    setDeleteBusy(true);
+    try {
+      const { data: sessData } = await supabase.auth.getSession();
+      const token = sessData.session?.access_token;
+      if (!token) throw new Error("Sessione scaduta");
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: targetId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore durante l'eliminazione");
+      toast.success("Account eliminato");
+      setProfiles((prev) => prev.filter((p) => p.id !== targetId));
+      setRoles((prev) => prev.filter((r) => r.user_id !== targetId));
+      setDeleteOpen(false);
+      setDeleteUser(null);
+      void loadLogs();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'eliminazione");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
@@ -392,6 +432,11 @@ function UtentiPage() {
                           <ShieldCheck className="h-4 w-4" /> Promuovi Admin
                         </Button>
                       )}
+                      {!isHr && !isAdminUser && (
+                        <Button size="sm" variant="destructive" disabled={isMe || deleteBusy} onClick={() => openDeleteAlert(p.id, p.email)}>
+                          <Trash2 className="h-4 w-4" /> Elimina richiesta
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -491,6 +536,27 @@ function UtentiPage() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setAlertUser(null)}>Annulla</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRevokeAdmin}>Conferma</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteOpen} onOpenChange={(o) => { if (!deleteBusy) setDeleteOpen(o); if (!o) setDeleteUser(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Elimina account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai per eliminare definitivamente l'account di {deleteUser?.email}. L'utente verrà rimosso dal sistema e dovrà registrarsi nuovamente. Questa azione non è reversibile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void confirmDeleteUser(); }}
+              disabled={deleteBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Elimina definitivamente"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

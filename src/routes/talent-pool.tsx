@@ -1008,7 +1008,7 @@ function TalentPoolPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-4">
             <div className="md:col-span-2">
               <Label className="text-xs">Ricerca libera</Label>
               <div className="relative">
@@ -1028,6 +1028,24 @@ function TalentPoolPage() {
                 value={citta}
                 onChange={(e) => setCitta(e.target.value)}
               />
+            </div>
+            <div>
+              <Label className="text-xs">Stato candidato</Label>
+              <Select
+                value={statoFilter}
+                onValueChange={(v) => setStatoFilter(v as StatoPool | "tutti")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATI.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

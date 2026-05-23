@@ -124,6 +124,7 @@ export function PosizioneFormDialog({ open, onOpenChange, posizione }: Props) {
     mutationFn: async (values: FormValues) => {
       const payload = {
         titolo: values.titolo.trim(),
+        macrocategoria: values.macrocategoria,
         reparto: values.reparto?.trim() || null,
         descrizione: values.descrizione.trim(),
         competenze: values.competenze?.trim() || null,
@@ -177,6 +178,26 @@ export function PosizioneFormDialog({ open, onOpenChange, posizione }: Props) {
             <Input id="titolo" {...form.register("titolo")} />
             {form.formState.errors.titolo && (
               <p className="text-xs text-destructive">{form.formState.errors.titolo.message}</p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Macrocategoria *</Label>
+            <Select
+              value={form.watch("macrocategoria")}
+              onValueChange={(v) => form.setValue("macrocategoria", v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleziona una macrocategoria…" />
+              </SelectTrigger>
+              <SelectContent>
+                {macrocategorie.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.macrocategoria && (
+              <p className="text-xs text-destructive">{form.formState.errors.macrocategoria.message}</p>
             )}
           </div>
 

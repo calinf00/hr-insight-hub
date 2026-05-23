@@ -64,11 +64,11 @@ function AnalisiPeriodoPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posizioni")
-        .select("id, titolo, reparto, stato")
+        .select("id, titolo, reparto, stato, macrocategoria")
         .eq("stato", "aperta")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Pick<Posizione, "id" | "titolo" | "reparto" | "stato">[];
+      return data as Pick<Posizione, "id" | "titolo" | "reparto" | "stato" | "macrocategoria">[];
     },
   });
 
@@ -245,9 +245,9 @@ function AnalisiPeriodoPage() {
               <SelectContent>
                 {(posizioni ?? []).length === 0 ? (
                   <div className="px-2 py-3 text-sm text-muted-foreground">Nessuna posizione aperta</div>
-                ) : posizioni!.map((p) => (
+                 ) : posizioni!.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.titolo}{p.reparto ? ` — ${p.reparto}` : ""}
+                    {p.titolo} — {p.macrocategoria}{p.reparto ? ` (${p.reparto})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>

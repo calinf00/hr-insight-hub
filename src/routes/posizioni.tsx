@@ -109,6 +109,7 @@ function PosizioniPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Titolo ruolo</TableHead>
+              <TableHead>Macrocategoria</TableHead>
               <TableHead>Reparto</TableHead>
               <TableHead>Data apertura</TableHead>
               <TableHead>Stato</TableHead>

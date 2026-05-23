@@ -167,7 +167,7 @@ function UtentiPage() {
 
   const actionBadgeVariant = (action: string): "default" | "secondary" | "destructive" | "outline" => {
     if (action.startsWith("grant_")) return "secondary";
-    if (action.startsWith("revoke_")) return "destructive";
+    if (action.startsWith("revoke_") || action === "delete_user") return "destructive";
     return "default";
   };
 

@@ -539,6 +539,27 @@ function UtentiPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={deleteOpen} onOpenChange={(o) => { if (!deleteBusy) setDeleteOpen(o); if (!o) setDeleteUser(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Elimina account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai per eliminare definitivamente l'account di {deleteUser?.email}. L'utente verrà rimosso dal sistema e dovrà registrarsi nuovamente. Questa azione non è reversibile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void confirmDeleteUser(); }}
+              disabled={deleteBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Elimina definitivamente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -336,10 +336,10 @@ function TalentPoolPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posizioni")
-        .select("id, titolo, reparto, stato")
+        .select("id, titolo, reparto, stato, macrocategoria")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Pick<Posizione, "id" | "titolo" | "reparto" | "stato">[];
+      return data as Pick<Posizione, "id" | "titolo" | "reparto" | "stato" | "macrocategoria">[];
     },
   });
 

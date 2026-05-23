@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { KeyRound, Loader2, ShieldAlert, ShieldCheck, ShieldMinus, UserCheck, UserX } from "lucide-react";
+import { History, KeyRound, Loader2, ShieldAlert, ShieldCheck, ShieldMinus, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,15 @@ export const Route = createFileRoute("/utenti")({
 
 type ProfileRow = { id: string; email: string; created_at: string };
 type RoleRow = { user_id: string; role: "hr" | "admin" };
+type LogRow = {
+  id: string;
+  admin_id: string;
+  admin_email: string | null;
+  action: string;
+  target_user_id: string | null;
+  target_email: string | null;
+  created_at: string;
+};
 
 function UtentiPage() {
   const router = useRouter();
@@ -48,6 +57,8 @@ function UtentiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [logs, setLogs] = useState<LogRow[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [meId, setMeId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -80,11 +91,40 @@ function UtentiPage() {
       setRoles((rs as RoleRow[]) ?? []);
     }
     setLoading(false);
+    if (admin) void loadLogs();
+  };
+
+  const loadLogs = async () => {
+    setLogsLoading(true);
+    const { data } = await supabase
+      .from("admin_log")
+      .select("id, admin_id, admin_email, action, target_user_id, target_email, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setLogs((data as LogRow[]) ?? []);
+    setLogsLoading(false);
   };
 
   useEffect(() => { void load(); }, []);
 
   const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
+
+  const actionLabel = (action: string) => {
+    switch (action) {
+      case "grant_hr": return "Accesso HR concesso";
+      case "revoke_hr": return "Accesso HR revocato";
+      case "grant_admin": return "Promosso Admin";
+      case "revoke_admin": return "Rimosso da Admin";
+      case "reset_password": return "Password reimpostata";
+      default: return action;
+    }
+  };
+
+  const actionBadgeVariant = (action: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (action.startsWith("grant_")) return "secondary";
+    if (action.startsWith("revoke_")) return "destructive";
+    return "default";
+  };
 
   const logAction = async (action: string, targetUserId: string) => {
     const { data: sess } = await supabase.auth.getSession();
@@ -109,6 +149,7 @@ function UtentiPage() {
     await logAction("grant_hr", uid);
     toast.success("Accesso HR concesso");
     void load();
+    void loadLogs();
   };
 
   const revokeHr = async (uid: string) => {
@@ -119,6 +160,7 @@ function UtentiPage() {
     await logAction("revoke_hr", uid);
     toast.success("Accesso HR rimosso");
     void load();
+    void loadLogs();
   };
 
   const grantAdmin = async (uid: string) => {
@@ -129,6 +171,7 @@ function UtentiPage() {
     await logAction("grant_admin", uid);
     toast.success("Utente promosso ad admin");
     void load();
+    void loadLogs();
   };
 
   const openRevokeAdminAlert = (uid: string, email: string) => {
@@ -148,6 +191,7 @@ function UtentiPage() {
     await logAction("revoke_admin", targetId);
     toast.success("Privilegi admin revocati");
     void load();
+    void loadLogs();
   };
 
   const openResetDialog = (uid: string) => {
@@ -196,6 +240,7 @@ function UtentiPage() {
       }
       toast.success("Password reimpostata");
       closeResetDialog();
+      void loadLogs();
     } catch (err: any) {
       toast.error(err.message || "Errore durante il reset");
     } finally {
@@ -287,6 +332,57 @@ function UtentiPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <History className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Storico azioni admin</h2>
+        </div>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2">Data/ora</th>
+                <th className="px-4 py-2">Admin</th>
+                <th className="px-4 py-2">Azione</th>
+                <th className="px-4 py-2">Utente interessato</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logsLoading ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nessuna azione registrata.</td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="border-t border-border">
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(log.created_at).toLocaleString("it-IT", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{log.admin_email ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={actionBadgeVariant(log.action)}>{actionLabel(log.action)}</Badge>
+                    </td>
+                    <td className="px-4 py-3">{log.target_email ?? "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeResetDialog(); }}>

@@ -293,6 +293,9 @@ function TalentPoolPage() {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "data", dir: "desc" });
 
+  const [posizioneFilter, setPosizioneFilter] = useState<string>("");
+  const [macrocategoriaFilter, setMacrocategoriaFilter] = useState<string>("");
+
   // Talent search by posizione
   const [cercaPosId, setCercaPosId] = useState<string>("");
 
@@ -333,10 +336,10 @@ function TalentPoolPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posizioni")
-        .select("id, titolo, reparto, stato")
+        .select("id, titolo, reparto, stato, macrocategoria")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Pick<Posizione, "id" | "titolo" | "reparto" | "stato">[];
+      return data as Pick<Posizione, "id" | "titolo" | "reparto" | "stato" | "macrocategoria">[];
     },
   });
 
@@ -413,6 +416,14 @@ function TalentPoolPage() {
     return Array.from(s).sort();
   }, [rows]);
 
+  const tutteMacrocategorie = useMemo(() => {
+    const s = new Set<string>();
+    for (const p of posizioni ?? []) {
+      if (p.macrocategoria?.trim()) s.add(p.macrocategoria.trim());
+    }
+    return Array.from(s).sort();
+  }, [posizioni]);
+
   // Filtered + sorted
   const filtered: Row[] = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -434,6 +445,19 @@ function TalentPoolPage() {
       }
       if (tagFilter.length > 0) {
         if (!tagFilter.every((t) => r.tags.includes(t))) return false;
+      }
+      if (posizioneFilter) {
+        const hasAnalisi = r.allAnalisi.some((a) => a.posizioni_ids.includes(posizioneFilter));
+        if (!hasAnalisi) return false;
+      }
+      if (macrocategoriaFilter) {
+        const hasMacrocategoria = r.allAnalisi.some((a) =>
+          a.posizioni_ids.some((pid) => {
+            const pos = posizioni?.find((p) => p.id === pid);
+            return pos?.macrocategoria === macrocategoriaFilter;
+          })
+        );
+        if (!hasMacrocategoria) return false;
       }
       if (from || to) {
         const d = new Date(r.candidato.created_at);
@@ -488,6 +512,9 @@ function TalentPoolPage() {
     dataFrom,
     dataTo,
     tagFilter,
+    posizioneFilter,
+    macrocategoriaFilter,
+    posizioni,
     sort,
   ]);
 
@@ -826,6 +853,8 @@ function TalentPoolPage() {
     setDataFrom("");
     setDataTo("");
     setTagFilter([]);
+    setPosizioneFilter("");
+    setMacrocategoriaFilter("");
   };
 
   const showCol = (k: ColKey) => visibleCols.includes(k);
@@ -871,7 +900,7 @@ function TalentPoolPage() {
                   {posizioniAperte.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.titolo}
-                      {p.reparto ? ` — ${p.reparto}` : ""}
+                      {p.macrocategoria ? ` — ${p.macrocategoria}` : ""}
                     </SelectItem>
                   ))}
                   {posizioniAperte.length === 0 && (
@@ -979,7 +1008,7 @@ function TalentPoolPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-4">
             <div className="md:col-span-2">
               <Label className="text-xs">Ricerca libera</Label>
               <div className="relative">
@@ -1000,6 +1029,67 @@ function TalentPoolPage() {
                 onChange={(e) => setCitta(e.target.value)}
               />
             </div>
+            <div>
+              <Label className="text-xs">Stato candidato</Label>
+              <Select
+                value={statoFilter}
+                onValueChange={(v) => setStatoFilter(v as StatoPool | "tutti")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATI.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <div>
+              <Label className="text-xs">Posizione candidata</Label>
+              <Select value={posizioneFilter} onValueChange={setPosizioneFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tutte le posizioni" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Tutte le posizioni</SelectItem>
+                  {(posizioni ?? []).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.titolo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Macrocategoria</Label>
+              <Select value={macrocategoriaFilter} onValueChange={setMacrocategoriaFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tutte" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Tutte</SelectItem>
+                  {tutteMacrocategorie.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Periodo da</Label>
+              <Input type="date" value={dataFrom} onChange={(e) => setDataFrom(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Periodo a</Label>
+              <Input type="date" value={dataTo} onChange={(e) => setDataTo(e.target.value)} />
+            </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-4">
@@ -1019,35 +1109,6 @@ function TalentPoolPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs">Stato candidato</Label>
-              <Select
-                value={statoFilter}
-                onValueChange={(v) => setStatoFilter(v as StatoPool | "tutti")}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATI.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Periodo da</Label>
-              <Input type="date" value={dataFrom} onChange={(e) => setDataFrom(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Periodo a</Label>
-              <Input type="date" value={dataTo} onChange={(e) => setDataTo(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
             <div>
               <Label className="text-xs">
                 Anni esperienza: {espRange[0]} – {espRange[1] >= 20 ? "20+" : espRange[1]}

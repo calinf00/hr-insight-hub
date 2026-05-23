@@ -160,6 +160,7 @@ function UtentiPage() {
       case "grant_admin": return "Promosso Admin";
       case "revoke_admin": return "Rimosso da Admin";
       case "reset_password": return "Password reimpostata";
+      case "delete_user": return "Account eliminato";
       default: return action;
     }
   };

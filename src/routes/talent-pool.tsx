@@ -180,6 +180,32 @@ function isModificatoManualmente(est: Estratte | null | undefined): boolean {
     ?._modificato_manualmente;
 }
 
+function isCompletatoManualmente(c: { stato_analisi: string }): boolean {
+  return c.stato_analisi === "completato_manualmente";
+}
+
+function isEstratteVuoto(est: Estratte | null | undefined): boolean {
+  if (!est) return true;
+  const keys = Object.keys(est).filter((k) => !k.startsWith("_"));
+  if (keys.length === 0) return true;
+  return keys.every((k) => {
+    const v = (est as Record<string, unknown>)[k];
+    if (v == null) return true;
+    if (typeof v === "string") return v.trim() === "";
+    if (Array.isArray(v)) return v.length === 0;
+    if (typeof v === "object") return Object.keys(v as object).length === 0;
+    return false;
+  });
+}
+
+const TITOLI_STUDIO_OPTIONS = [
+  "Nessuno",
+  "Diploma",
+  "Laurea triennale",
+  "Laurea magistrale",
+  "Master/Dottorato",
+] as const;
+
 type ColKey =
   | "email"
   | "citta"

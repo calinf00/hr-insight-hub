@@ -739,6 +739,78 @@ function EsportazioneSection() {
   );
 }
 
+/* ============== SICUREZZA ACCOUNT ============== */
+function SicurezzaAccountSection() {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const passwordsMatch = newPassword === confirmPassword;
+  const minLength = newPassword.length >= 8 && confirmPassword.length >= 8;
+  const canSubmit = passwordsMatch && minLength && newPassword.length > 0;
+
+  const newPasswordError = newPassword.length > 0 && newPassword.length < 8 ? "Minimo 8 caratteri" : null;
+  const confirmPasswordError = confirmPassword.length > 0 && !passwordsMatch ? "Le password non coincidono" : null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Password aggiornata");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'aggiornamento della password");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Lock className="h-4 w-4 text-primary" />
+        <h2 className="text-lg font-semibold">Sicurezza account</h2>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="newPassword">Nuova password</Label>
+          <Input
+            id="newPassword"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Minimo 8 caratteri"
+            minLength={8}
+            className={newPasswordError ? "border-destructive" : ""}
+          />
+          {newPasswordError && <p className="text-sm text-destructive">{newPasswordError}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Conferma password</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Ripeti la password"
+            className={confirmPasswordError ? "border-destructive" : ""}
+          />
+          {confirmPasswordError && <p className="text-sm text-destructive">{confirmPasswordError}</p>}
+        </div>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={!canSubmit || busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aggiorna password"}
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 /* ============== INFORMAZIONI APP ============== */
 function InfoAppSection() {
   return (

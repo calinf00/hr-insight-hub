@@ -174,6 +174,11 @@ function scoreColor(s: number | null | undefined) {
   return "bg-destructive text-destructive-foreground";
 }
 
+function isModificatoManualmente(est: Estratte | null | undefined): boolean {
+  return !!(est as (Estratte & { _modificato_manualmente?: boolean }) | null | undefined)
+    ?._modificato_manualmente;
+}
+
 type ColKey =
   | "email"
   | "citta"

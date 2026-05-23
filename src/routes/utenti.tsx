@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { KeyRound, Loader2, ShieldAlert, UserCheck, UserX } from "lucide-react";
+import { KeyRound, Loader2, ShieldAlert, ShieldCheck, ShieldMinus, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/utenti")({
   beforeLoad: async () => {
@@ -46,6 +56,8 @@ function UtentiPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetBusy, setResetBusy] = useState(false);
   const [valError, setValError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertUser, setAlertUser] = useState<{ id: string; email: string } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -89,6 +101,32 @@ function UtentiPage() {
     setBusyId(null);
     if (error) { toast.error("Impossibile rimuovere l'accesso"); return; }
     toast.success("Accesso HR rimosso");
+    void load();
+  };
+
+  const grantAdmin = async (uid: string) => {
+    setBusyId(uid);
+    const { error } = await supabase.from("user_roles").insert({ user_id: uid, role: "admin" });
+    setBusyId(null);
+    if (error) { toast.error("Impossibile promuovere ad admin"); return; }
+    toast.success("Utente promosso ad admin");
+    void load();
+  };
+
+  const openRevokeAdminAlert = (uid: string, email: string) => {
+    setAlertUser({ id: uid, email });
+    setAlertOpen(true);
+  };
+
+  const confirmRevokeAdmin = async () => {
+    if (!alertUser) return;
+    setBusyId(alertUser.id);
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", alertUser.id).eq("role", "admin");
+    setBusyId(null);
+    setAlertOpen(false);
+    setAlertUser(null);
+    if (error) { toast.error("Impossibile revocare admin"); return; }
+    toast.success("Privilegi admin revocati");
     void load();
   };
 
@@ -210,6 +248,15 @@ function UtentiPage() {
                           <UserCheck className="h-4 w-4" /> Concedi HR
                         </Button>
                       )}
+                      {isAdminUser ? (
+                        <Button size="sm" variant="destructive" disabled={busyId === p.id || isMe} onClick={() => openRevokeAdminAlert(p.id, p.email)}>
+                          <ShieldMinus className="h-4 w-4" /> Revoca Admin
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="secondary" disabled={busyId === p.id || isMe} onClick={() => grantAdmin(p.id)}>
+                          <ShieldCheck className="h-4 w-4" /> Promuovi Admin
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -246,6 +293,21 @@ function UtentiPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma revoca admin</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai rimuovendo i privilegi admin a {alertUser?.email}. Sei sicuro?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertUser(null)}>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRevokeAdmin}>Conferma</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

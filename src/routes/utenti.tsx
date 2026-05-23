@@ -86,11 +86,27 @@ function UtentiPage() {
 
   const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
 
+  const logAction = async (action: string, targetUserId: string) => {
+    const { data: sess } = await supabase.auth.getSession();
+    const adminId = sess.session?.user.id;
+    const adminEmail = sess.session?.user.email ?? null;
+    if (!adminId) return;
+    const targetEmail = profiles.find((p) => p.id === targetUserId)?.email ?? null;
+    await supabase.from("admin_log").insert({
+      admin_id: adminId,
+      admin_email: adminEmail,
+      action,
+      target_user_id: targetUserId,
+      target_email: targetEmail,
+    });
+  };
+
   const grantHr = async (uid: string) => {
     setBusyId(uid);
     const { error } = await supabase.from("user_roles").insert({ user_id: uid, role: "hr" });
     setBusyId(null);
     if (error) { toast.error("Impossibile concedere l'accesso"); return; }
+    await logAction("grant_hr", uid);
     toast.success("Accesso HR concesso");
     void load();
   };
@@ -100,6 +116,7 @@ function UtentiPage() {
     const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).eq("role", "hr");
     setBusyId(null);
     if (error) { toast.error("Impossibile rimuovere l'accesso"); return; }
+    await logAction("revoke_hr", uid);
     toast.success("Accesso HR rimosso");
     void load();
   };
@@ -109,6 +126,7 @@ function UtentiPage() {
     const { error } = await supabase.from("user_roles").insert({ user_id: uid, role: "admin" });
     setBusyId(null);
     if (error) { toast.error("Impossibile promuovere ad admin"); return; }
+    await logAction("grant_admin", uid);
     toast.success("Utente promosso ad admin");
     void load();
   };
@@ -120,12 +138,14 @@ function UtentiPage() {
 
   const confirmRevokeAdmin = async () => {
     if (!alertUser) return;
-    setBusyId(alertUser.id);
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", alertUser.id).eq("role", "admin");
+    const targetId = alertUser.id;
+    setBusyId(targetId);
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", targetId).eq("role", "admin");
     setBusyId(null);
     setAlertOpen(false);
     setAlertUser(null);
     if (error) { toast.error("Impossibile revocare admin"); return; }
+    await logAction("revoke_admin", targetId);
     toast.success("Privilegi admin revocati");
     void load();
   };

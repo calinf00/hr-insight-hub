@@ -109,6 +109,23 @@ function UtentiPage() {
 
   const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
 
+  const actionLabel = (action: string) => {
+    switch (action) {
+      case "grant_hr": return "Accesso HR concesso";
+      case "revoke_hr": return "Accesso HR revocato";
+      case "grant_admin": return "Promosso Admin";
+      case "revoke_admin": return "Rimosso da Admin";
+      case "reset_password": return "Password reimpostata";
+      default: return action;
+    }
+  };
+
+  const actionBadgeVariant = (action: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (action.startsWith("grant_")) return "secondary";
+    if (action.startsWith("revoke_")) return "destructive";
+    return "default";
+  };
+
   const logAction = async (action: string, targetUserId: string) => {
     const { data: sess } = await supabase.auth.getSession();
     const adminId = sess.session?.user.id;

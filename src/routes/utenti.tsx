@@ -293,6 +293,42 @@ function UtentiPage() {
     }
   };
 
+  const openDeleteAlert = (uid: string, email: string) => {
+    setDeleteUser({ id: uid, email });
+    setDeleteOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUser) return;
+    const targetId = deleteUser.id;
+    setDeleteBusy(true);
+    try {
+      const { data: sessData } = await supabase.auth.getSession();
+      const token = sessData.session?.access_token;
+      if (!token) throw new Error("Sessione scaduta");
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: targetId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore durante l'eliminazione");
+      toast.success("Account eliminato");
+      setProfiles((prev) => prev.filter((p) => p.id !== targetId));
+      setRoles((prev) => prev.filter((r) => r.user_id !== targetId));
+      setDeleteOpen(false);
+      setDeleteUser(null);
+      void loadLogs();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'eliminazione");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }

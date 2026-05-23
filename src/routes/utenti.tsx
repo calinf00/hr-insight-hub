@@ -191,6 +191,7 @@ function UtentiPage() {
     await logAction("revoke_admin", targetId);
     toast.success("Privilegi admin revocati");
     void load();
+    void loadLogs();
   };
 
   const openResetDialog = (uid: string) => {

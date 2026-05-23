@@ -575,7 +575,7 @@ function TalentPoolPage() {
         .update({
           nome: editForm.nome.trim() || "—",
           cognome: editForm.cognome.trim() || "—",
-          informazioni_estratte: nextEstratte as unknown as Record<string, unknown>,
+          informazioni_estratte: nextEstratte as never,
         })
         .eq("id", id);
       if (error) throw error;

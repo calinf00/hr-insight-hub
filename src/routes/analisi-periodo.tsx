@@ -133,7 +133,7 @@ function AnalisiPeriodoPage() {
       const info = c.informazioni_estratte as Record<string, unknown> | null;
       const hasInfo = !!info && typeof info === "object" && Object.keys(info).length > 0;
 
-      if (onlyWithInfo && (!hasInfo || c.stato_analisi === "errore_estrazione")) return false;
+      if (effectiveOnlyWithInfo && (!hasInfo || c.stato_analisi === "errore_estrazione")) return false;
       if (onlyNotAnalyzed && analisiEsistenti?.has(c.id)) return false;
 
       if (lingueTokens.length > 0) {
